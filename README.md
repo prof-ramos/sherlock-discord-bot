@@ -1,69 +1,308 @@
-# Please read!
+# 🔍 SherlockRamosBot
 
+<div align="center">
 
-**For any problems running this specific bot:** [Discord Project Post](https://discord.com/channels/974519864045756446/1055336272543092757)
+**ChatBot inteligente no Discord para auxiliar concurseiros brasileiros com dúvidas jurídicas**
 
-**For general OpenAI API problems or questions:** [Discord API Discussions](https://discord.com/channels/974519864045756446/1037561178286739466)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Discord.py](https://img.shields.io/badge/discord.py-2.6+-blue.svg)](https://discordpy.readthedocs.io/)
+[![OpenRouter](https://img.shields.io/badge/OpenRouter-API-green.svg)](https://openrouter.ai/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**For bugs in the template code:** create an Issue
-
-**For feature requests:** this repo is not accepting feature requests, you can discuss potential features in [Discord Project Post](https://discord.com/channels/974519864045756446/1055336272543092757)
-
-**For PRs:** only bug fix PRs wil be accepted. If you are implementing a new feature, please fork this repo.
-
-Thank you!
+</div>
 
 ---
-# GPT Discord Bot
 
-Example Discord bot written in Python that uses the [chat completions API](https://platform.openai.com/docs/api-reference/chat/create) to have conversations with the `gpt-3.5-turbo` model, and the [moderations API](https://beta.openai.com/docs/api-reference/moderations) to filter the messages.
+## 📋 Sobre
 
-This bot uses the [OpenAI Python Library](https://github.com/openai/openai-python) and [discord.py](https://discordpy.readthedocs.io/).
+O **SherlockRamosBot** é um assistente virtual powered by IA projetado especialmente para concurseiros brasileiros. Utilizando modelos de linguagem avançados através da API do OpenRouter, o bot oferece suporte para tirar dúvidas sobre temas jurídicos, legislação, jurisprudência e muito mais.
 
+### ✨ Principais Características
 
-# Features
+- 🤖 **Múltiplos Modelos de IA**: Acesso a GPT-4, Claude, Gemini e LLaMA via OpenRouter
+- 💬 **Conversas Contextuais**: Mantém histórico da conversa em threads
+- ⚡ **Respostas Rápidas**: Processamento otimizado para respostas ágeis
+- 🎯 **Foco Jurídico**: Personalizado para auxiliar em estudos para concursos
+- 🔒 **Seguro**: Sistema de moderação integrado
+- 🌐 **Multi-servidor**: Pode ser usado em vários servidores Discord simultaneamente
 
-- `/chat` starts a public thread, with a `message` argument which is the first user message passed to the bot. You can optionally also adjust the `temperature` and `max_tokens` parameters.
-- The model will generate a reply for every user message in any threads started with `/chat`
-- The entire thread will be passed to the model for each request, so the model will remember previous messages in the thread
-- when the context limit is reached, or a max message count is reached in the thread, bot will close the thread
-- you can customize the bot instructions by modifying `config.yaml`
-- you can change the model, the default value is `gpt-3.5-turbo`
+---
 
-# Setup
+## 🚀 Funcionalidades
 
-1. Copy `.env.example` to `.env` and start filling in the values as detailed below
-1. Go to https://beta.openai.com/account/api-keys, create a new API key, and fill in `OPENAI_API_KEY`
-1. Create your own Discord application at https://discord.com/developers/applications
-1. Go to the Bot tab and click "Add Bot"
-    - Click "Reset Token" and fill in `DISCORD_BOT_TOKEN`
-    - Disable "Public Bot" unless you want your bot to be visible to everyone
-    - Enable "Message Content Intent" under "Privileged Gateway Intents"
-1. Go to the OAuth2 tab, copy your "Client ID", and fill in `DISCORD_CLIENT_ID`
-1. Copy the ID the server you want to allow your bot to be used in by right clicking the server icon and clicking "Copy ID". Fill in `ALLOWED_SERVER_IDS`. If you want to allow multiple servers, separate the IDs by "," like `server_id_1,server_id_2`
-1. Install dependencies and run the bot
-    ```
-    pip install -r requirements.txt
-    python -m src.main
-    ```
-    You should see an invite URL in the console. Copy and paste it into your browser to add the bot to your server.
-    Note: make sure you are using Python 3.9+ (check with python --version)
+### Comando Principal: `/chat`
 
-# Optional configuration
+Inicia uma thread pública onde você pode conversar com o bot sobre suas dúvidas jurídicas.
 
-1. If you want moderation messages, create and copy the channel id for each server that you want the moderation messages to send to in `SERVER_TO_MODERATION_CHANNEL`. This should be of the format: `server_id:channel_id,server_id_2:channel_id_2`
-1. If you want to change the personality of the bot, go to `src/config.yaml` and edit the instructions
-1. If you want to change the moderation settings for which messages get flagged or blocked, edit the values in `src/constants.py`. A higher value means less chance of it triggering, with 1.0 being no moderation at all for that category.
+**Parâmetros disponíveis:**
+- `message` (obrigatório): Sua pergunta ou dúvida
+- `temperature` (opcional): Controla a criatividade (0.0 a 2.0, padrão: 1.0)
+- `max_tokens` (opcional): Limite de tokens na resposta
 
-# FAQ
+**Exemplos de uso:**
 
-> Why isn't my bot responding to commands?
+```
+/chat message:"Qual a diferença entre crime doloso e culposo?"
 
-Ensure that the channels your bots have access to allow the bot to have these permissions.
-- Send Messages
-- Send Messages in Threads
-- Create Public Threads
-- Manage Messages (only for moderation to delete blocked messages)
-- Manage Threads
-- Read Message History
-- Use Application Commands
+/chat message:"Explique o princípio da legalidade no Direito Administrativo" temperature:0.7
+
+/chat message:"Cite 3 súmulas importantes do STF sobre direito constitucional"
+```
+
+### Como Funciona
+
+1. Use `/chat` para iniciar uma conversa em uma thread pública
+2. O bot responderá à sua mensagem inicial
+3. Continue fazendo perguntas na mesma thread - o bot lembrará do contexto
+4. A thread é encerrada automaticamente quando atingir o limite de mensagens ou tokens
+5. Você pode iniciar quantas threads quiser!
+
+---
+
+## 🛠️ Instalação e Configuração
+
+### Pré-requisitos
+
+- Python 3.9 ou superior
+- Conta no Discord com permissões de desenvolvedor
+- Chave de API do OpenRouter ([obtenha aqui](https://openrouter.ai/))
+
+### Passo 1: Clone o Repositório
+
+```bash
+git clone https://github.com/prof-ramos/sherlock-discord-bot.git
+cd sherlock-discord-bot
+```
+
+### Passo 2: Instale as Dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+### Passo 3: Configure as Variáveis de Ambiente
+
+1. Copie o arquivo de exemplo:
+```bash
+cp .env.example .env
+```
+
+2. Edite o arquivo `.env` com suas credenciais:
+
+```env
+# Chave da API do OpenRouter (obtenha em: https://openrouter.ai/keys)
+OPENAI_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxx
+
+# URL Base do OpenRouter (não alterar)
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
+
+# Token do Bot Discord (obtenha em: https://discord.com/developers/applications)
+DISCORD_BOT_TOKEN=seu_token_aqui
+
+# Client ID do Discord
+DISCORD_CLIENT_ID=seu_client_id_aqui
+
+# IDs dos servidores permitidos (separe por vírgula)
+ALLOWED_SERVER_IDS=123456789,987654321
+
+# Canal de moderação (formato: server_id:channel_id)
+SERVER_TO_MODERATION_CHANNEL=123456789:987654321
+
+# Modelo padrão (veja modelos disponíveis abaixo)
+DEFAULT_MODEL=openai/gpt-3.5-turbo
+```
+
+### Passo 4: Configure seu Bot no Discord
+
+1. Acesse o [Discord Developer Portal](https://discord.com/developers/applications)
+2. Clique em "New Application" e dê um nome ao seu bot
+3. Vá na aba "Bot" e clique em "Add Bot"
+   - Clique em "Reset Token" e copie o token para `DISCORD_BOT_TOKEN`
+   - Desative "Public Bot" se não quiser que outros vejam seu bot
+   - **IMPORTANTE**: Ative "Message Content Intent" em "Privileged Gateway Intents"
+4. Vá na aba "OAuth2" e copie o "Client ID" para `DISCORD_CLIENT_ID`
+5. Para obter o ID do servidor:
+   - No Discord, clique com botão direito no ícone do servidor
+   - Clique em "Copiar ID" e cole em `ALLOWED_SERVER_IDS`
+
+### Passo 5: Execute o Bot
+
+```bash
+python -m src.main
+```
+
+Você verá uma URL de convite no console. Copie e cole no navegador para adicionar o bot ao seu servidor!
+
+---
+
+## 🤖 Modelos Disponíveis
+
+O SherlockRamosBot suporta diversos modelos via OpenRouter:
+
+| Modelo | Descrição | Ideal Para |
+|--------|-----------|------------|
+| `openai/gpt-3.5-turbo` | Rápido e econômico | Dúvidas gerais, revisões |
+| `openai/gpt-4o` | Mais inteligente e preciso | Questões complexas, análises profundas |
+| `anthropic/claude-3-opus` | Excelente raciocínio | Interpretação de leis, argumentação |
+| `anthropic/claude-3-sonnet` | Balanceado | Uso geral, boa relação custo/benefício |
+| `google/gemini-pro-1.5` | Contexto extenso | Análise de textos longos |
+| `meta-llama/llama-3-70b-instruct` | Open source potente | Alternativa econômica |
+
+**Como alterar o modelo padrão:**
+Edite `DEFAULT_MODEL` no arquivo `.env`
+
+---
+
+## ⚙️ Personalização
+
+### Ajustando a Personalidade do Bot
+
+Edite o arquivo `src/config.yaml` para personalizar as instruções e exemplos:
+
+```yaml
+name: "SherlockRamosBot"
+instructions: "Você é um assistente especializado em auxiliar concurseiros brasileiros..."
+example_conversations:
+  - messages:
+    - user: "User"
+      text: "Explique o princípio da legalidade"
+    - user: "SherlockRamosBot"
+      text: "O princípio da legalidade estabelece que..."
+```
+
+### Ajustando Parâmetros de Geração
+
+No comando `/chat`, você pode ajustar:
+
+- **Temperature** (0.0 - 2.0):
+  - `0.0-0.5`: Respostas mais objetivas e consistentes
+  - `0.6-1.0`: Balanceado (recomendado)
+  - `1.1-2.0`: Mais criativo e variado
+
+- **Max Tokens**: Limite de tamanho da resposta
+  - Padrão: 1000 tokens (~750 palavras)
+  - Máximo recomendado: 2000 tokens
+
+---
+
+## 🔒 Permissões Necessárias
+
+Para funcionar corretamente, o bot precisa das seguintes permissões no Discord:
+
+- ✅ Enviar Mensagens
+- ✅ Enviar Mensagens em Threads
+- ✅ Criar Threads Públicas
+- ✅ Gerenciar Mensagens (para moderação)
+- ✅ Gerenciar Threads
+- ✅ Ler Histórico de Mensagens
+- ✅ Usar Comandos de Aplicação
+
+---
+
+## 📚 Exemplos de Uso para Concurseiros
+
+### Dúvidas de Direito Constitucional
+```
+/chat message:"Quais são os direitos e garantias fundamentais previstos no Art. 5º da CF/88?"
+```
+
+### Questões de Direito Administrativo
+```
+/chat message:"Explique os princípios da Administração Pública (LIMPE)"
+```
+
+### Direito Penal
+```
+/chat message:"Qual a diferença entre excludentes de ilicitude e excludentes de culpabilidade?"
+```
+
+### Preparação para Provas
+```
+/chat message:"Me faça 5 questões de múltipla escolha sobre Direito Tributário"
+```
+
+### Jurisprudência
+```
+/chat message:"Quais as principais súmulas do STJ sobre execução penal?"
+```
+
+---
+
+## 🐛 Solução de Problemas
+
+### O bot não responde aos comandos
+
+1. Verifique se o bot tem as permissões necessárias no canal
+2. Confirme que "Message Content Intent" está ativado no Developer Portal
+3. Verifique se o servidor está na lista `ALLOWED_SERVER_IDS`
+
+### Erro de autenticação da API
+
+1. Confirme que sua chave do OpenRouter está correta
+2. Verifique se tem créditos na conta do OpenRouter
+3. Confirme que `OPENAI_BASE_URL` está configurado corretamente
+
+### Bot fica offline
+
+1. Verifique se o `DISCORD_BOT_TOKEN` está correto
+2. Confirme que o bot não foi desativado no Developer Portal
+3. Verifique os logs para mensagens de erro
+
+---
+
+## 💰 Custos
+
+O SherlockRamosBot usa a API do OpenRouter, que tem preços variados por modelo:
+
+- **GPT-3.5-turbo**: ~$0.002 por 1K tokens (muito econômico)
+- **GPT-4**: ~$0.03-0.06 por 1K tokens
+- **Claude-3**: ~$0.015-0.075 por 1K tokens
+
+💡 **Dica**: Comece com `openai/gpt-3.5-turbo` para testes e economizar créditos.
+
+Monitore seu uso em: [OpenRouter Dashboard](https://openrouter.ai/activity)
+
+---
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Para contribuir:
+
+1. Faça um Fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
+4. Push para a branch (`git push origin feature/MinhaFeature`)
+5. Abra um Pull Request
+
+---
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+## 📞 Suporte
+
+- 🐛 **Bugs**: Abra uma [Issue](https://github.com/prof-ramos/sherlock-discord-bot/issues)
+- 💡 **Sugestões**: Abra uma [Discussion](https://github.com/prof-ramos/sherlock-discord-bot/discussions)
+- 📧 **Contato**: [seu-email@exemplo.com]
+
+---
+
+## 🙏 Agradecimentos
+
+- [OpenAI](https://openai.com/) - Modelos GPT
+- [Anthropic](https://anthropic.com/) - Modelos Claude
+- [OpenRouter](https://openrouter.ai/) - Plataforma unificada de APIs
+- [discord.py](https://discordpy.readthedocs.io/) - Biblioteca Discord para Python
+
+---
+
+<div align="center">
+
+**Desenvolvido com ❤️ para a comunidade de concurseiros brasileiros**
+
+⭐ Se este projeto te ajudou, considere dar uma estrela!
+
+</div>
