@@ -9,6 +9,8 @@ from src.constants import (
     BOT_INSTRUCTIONS,
     BOT_NAME,
     EXAMPLE_CONVOS,
+    OPENAI_BASE_URL,
+    OPENAI_API_KEY,
 )
 import discord
 from src.base import Message, Prompt, Conversation, ThreadConfig
@@ -38,7 +40,10 @@ class CompletionData:
     status_text: Optional[str]
 
 
-client = AsyncOpenAI()
+client = AsyncOpenAI(
+    api_key=OPENAI_API_KEY,
+    base_url=OPENAI_BASE_URL
+)
 
 
 async def generate_completion_response(
@@ -60,6 +65,10 @@ async def generate_completion_response(
             top_p=1.0,
             max_tokens=thread_config.max_tokens,
             stop=["<|endoftext|>"],
+            extra_headers={
+                "HTTP-Referer": "https://github.com/prof-ramos/sherlock-discord-bot",
+                "X-Title": "Discord Bot Client",
+            },
         )
         reply = response.choices[0].message.content.strip()
         if reply:

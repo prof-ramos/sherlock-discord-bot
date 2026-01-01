@@ -1,13 +1,6 @@
-from openai._compat import model_dump
-
 from src.constants import (
     SERVER_TO_MODERATION_CHANNEL,
-    MODERATION_VALUES_FOR_BLOCKED,
-    MODERATION_VALUES_FOR_FLAGGED,
 )
-from openai import OpenAI
-
-client = OpenAI()
 from typing import Optional, Tuple
 import discord
 from src.utils import logger
@@ -16,24 +9,10 @@ from src.utils import logger
 def moderate_message(
     message: str, user: str
 ) -> Tuple[str, str]:  # [flagged_str, blocked_str]
-    moderation_response = client.moderations.create(
-        input=message, model="text-moderation-latest"
-    )
-    category_scores = moderation_response.results[0].category_scores or {}
-
-    category_score_items = model_dump(category_scores)
-
-    blocked_str = ""
-    flagged_str = ""
-    for category, score in category_score_items.items():
-        if score > MODERATION_VALUES_FOR_BLOCKED.get(category, 1.0):
-            blocked_str += f"({category}: {score})"
-            logger.info(f"blocked {user} {category} {score}")
-            break
-        if score > MODERATION_VALUES_FOR_FLAGGED.get(category, 1.0):
-            flagged_str += f"({category}: {score})"
-            logger.info(f"flagged {user} {category} {score}")
-    return (flagged_str, blocked_str)
+    # Moderação desativada: OpenRouter não possui endpoint /moderations
+    # O OpenRouter já aplica filtros nativos em muitos modelos
+    # Retorna strings vazias, significando "sem flag", "sem bloqueio"
+    return ("", "")
 
 
 async def fetch_moderation_channel(
