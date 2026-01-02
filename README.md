@@ -269,6 +269,72 @@ Monitore seu uso em: [OpenRouter Dashboard](https://openrouter.ai/activity)
 
 ---
 
+## 🗺️ Roadmap
+
+Funcionalidades planejadas para futuras versões do SherlockRamosBot:
+
+### 🎯 Em Desenvolvimento
+
+#### RAG (Retrieval-Augmented Generation) com SupabaseCloud
+- **Objetivo**: Integrar base de conhecimento jurídica vetorizada
+- **Benefícios**:
+  - 📚 Respostas baseadas em legislação específica armazenada
+  - 🎓 Banco de questões de concursos anteriores
+  - ⚖️ Jurisprudência e súmulas indexadas
+  - 📖 Doutrinas e materiais de estudo
+- **Stack Técnica**:
+  - Supabase Vector (pgvector) para armazenamento de embeddings
+  - OpenAI Embeddings ou similares para vetorização
+  - Busca semântica para recuperação de contexto relevante
+- **Status**: 🔄 Planejado
+
+### 🚀 Próximas Features
+
+#### Sistema de Flashcards Interativos
+- Geração automática de flashcards a partir de tópicos estudados
+- Revisão espaçada baseada em algoritmo SM-2
+- Tracking de progresso por matéria
+
+#### Quiz e Simulados Personalizados
+- Geração de questões estilo banca (CESPE, FCC, FGV, etc.)
+- Simulados cronometrados
+- Análise de desempenho e estatísticas
+
+#### Assistente de Revisão Programada
+- Lembretes automáticos de revisão
+- Cronograma de estudos personalizado
+- Acompanhamento de metas diárias/semanais
+
+#### Integração com Legislação Atualizada
+- Sync automático com Planalto/DOU
+- Notificações de alterações legislativas importantes
+- Comparação de versões de leis (redação antiga vs. nova)
+
+#### Análise de Jurisprudência
+- Busca de decisões relevantes do STF/STJ
+- Resumos automáticos de julgados
+- Tendências jurisprudenciais por tema
+
+#### Sistema de Ranking e Gamificação
+- Sistema de pontos por interações
+- Badges de conquistas (estudou X dias seguidos, etc.)
+- Ranking semanal de estudantes mais ativos
+
+### 💡 Ideias Futuras
+
+- 🎙️ Suporte a comandos de voz
+- 📱 App mobile complementar
+- 👥 Salas de estudo colaborativas
+- 🎬 Integração com vídeo-aulas
+- 📊 Dashboard web de estatísticas
+- 🔔 Sistema de notificações de editais
+
+### 🤝 Contribua com Ideias
+
+Tem uma sugestão? Abra uma [Discussion](https://github.com/prof-ramos/sherlock-discord-bot/discussions) ou [Issue](https://github.com/prof-ramos/sherlock-discord-bot/issues) com a tag `enhancement`!
+
+---
+
 ## 🤝 Contribuindo
 
 Contribuições são bem-vindas! Para contribuir:
