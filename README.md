@@ -17,7 +17,7 @@
 
 O **SherlockRamosBot** é um assistente virtual powered by IA projetado especialmente para concurseiros brasileiros. Utilizando modelos de linguagem avançados através da API do OpenRouter, o bot oferece suporte para tirar dúvidas sobre temas jurídicos, legislação, jurisprudência e muito mais.
 
-### ✨ Principais Características
+## ✨ Principais Características
 
 - 🤖 **Múltiplos Modelos de IA**: Acesso a GPT-4, Claude, Gemini e LLaMA via OpenRouter
 - 💬 **Conversas Contextuais**: Mantém histórico da conversa em threads
@@ -30,18 +30,18 @@ O **SherlockRamosBot** é um assistente virtual powered by IA projetado especial
 
 ## 🚀 Funcionalidades
 
-### Comando Principal: `/chat`
+## Comando Principal: `/chat`
 
 Inicia uma thread pública onde você pode conversar com o bot sobre suas dúvidas jurídicas.
 
-**Parâmetros disponíveis:**
+### Parâmetros disponíveis
 - `message` (obrigatório): Sua pergunta ou dúvida
 - `temperature` (opcional): Controla a criatividade (0.0 a 2.0, padrão: 1.0)
 - `max_tokens` (opcional): Limite de tokens na resposta
 
-**Exemplos de uso:**
+### Exemplos de uso
 
-```
+```text
 /chat message:"Qual a diferença entre crime doloso e culposo?"
 
 /chat message:"Explique o princípio da legalidade no Direito Administrativo" temperature:0.7
@@ -49,7 +49,7 @@ Inicia uma thread pública onde você pode conversar com o bot sobre suas dúvid
 /chat message:"Cite 3 súmulas importantes do STF sobre direito constitucional"
 ```
 
-### Como Funciona
+### Como funciona
 
 1. Use `/chat` para iniciar uma conversa em uma thread pública
 2. O bot responderá à sua mensagem inicial
@@ -61,26 +61,26 @@ Inicia uma thread pública onde você pode conversar com o bot sobre suas dúvid
 
 ## 🛠️ Instalação e Configuração
 
-### Pré-requisitos
+## Pré-requisitos
 
 - Python 3.9 ou superior
 - Conta no Discord com permissões de desenvolvedor
 - Chave de API do OpenRouter ([obtenha aqui](https://openrouter.ai/))
 
-### Passo 1: Clone o Repositório
+## Passo 1: Clone o Repositório
 
 ```bash
 git clone https://github.com/prof-ramos/sherlock-discord-bot.git
 cd sherlock-discord-bot
 ```
 
-### Passo 2: Instale as Dependências
+## Passo 2: Instale as Dependências
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Passo 3: Configure as Variáveis de Ambiente
+## Passo 3: Configure as Variáveis de Ambiente
 
 1. Copie o arquivo de exemplo:
 ```bash
@@ -112,20 +112,20 @@ SERVER_TO_MODERATION_CHANNEL=123456789:987654321
 DEFAULT_MODEL=openai/gpt-3.5-turbo
 ```
 
-### Passo 4: Configure seu Bot no Discord
+## Passo 4: Configure seu Bot no Discord
 
 1. Acesse o [Discord Developer Portal](https://discord.com/developers/applications)
 2. Clique em "New Application" e dê um nome ao seu bot
-3. Vá na aba "Bot" e clique em "Add Bot"
+3. Vá à aba "Bot" e clique em "Add Bot"
    - Clique em "Reset Token" e copie o token para `DISCORD_BOT_TOKEN`
    - Desative "Public Bot" se não quiser que outros vejam seu bot
    - **IMPORTANTE**: Ative "Message Content Intent" em "Privileged Gateway Intents"
-4. Vá na aba "OAuth2" e copie o "Client ID" para `DISCORD_CLIENT_ID`
+4. Vá à aba "OAuth2" e copie o "Client ID" para `DISCORD_CLIENT_ID`
 5. Para obter o ID do servidor:
    - No Discord, clique com botão direito no ícone do servidor
    - Clique em "Copiar ID" e cole em `ALLOWED_SERVER_IDS`
 
-### Passo 5: Execute o Bot
+## Passo 5: Execute o Bot
 
 ```bash
 python -m src.main
@@ -145,7 +145,7 @@ O SherlockRamosBot suporta diversos modelos via OpenRouter:
 | `openai/gpt-4o` | Mais inteligente e preciso | Questões complexas, análises profundas |
 | `anthropic/claude-3-opus` | Excelente raciocínio | Interpretação de leis, argumentação |
 | `anthropic/claude-3-sonnet` | Balanceado | Uso geral, boa relação custo/benefício |
-| `google/gemini-pro-1.5` | Contexto extenso | Análise de textos longos |
+| `google/gemini-2.0-flash-exp` | Rápido e avançado | Análise de textos longos, respostas ágeis |
 | `meta-llama/llama-3-70b-instruct` | Open source potente | Alternativa econômica |
 
 **Como alterar o modelo padrão:**
@@ -155,7 +155,7 @@ Edite `DEFAULT_MODEL` no arquivo `.env`
 
 ## ⚙️ Personalização
 
-### Ajustando a Personalidade do Bot
+## Ajustando a Personalidade do Bot
 
 Edite o arquivo `src/config.yaml` para personalizar as instruções e exemplos:
 
@@ -170,7 +170,7 @@ example_conversations:
       text: "O princípio da legalidade estabelece que..."
 ```
 
-### Ajustando Parâmetros de Geração
+## Ajustando Parâmetros de Geração
 
 No comando `/chat`, você pode ajustar:
 
@@ -202,27 +202,32 @@ Para funcionar corretamente, o bot precisa das seguintes permissões no Discord:
 ## 📚 Exemplos de Uso para Concurseiros
 
 ### Dúvidas de Direito Constitucional
-```
+
+```text
 /chat message:"Quais são os direitos e garantias fundamentais previstos no Art. 5º da CF/88?"
 ```
 
 ### Questões de Direito Administrativo
-```
+
+```text
 /chat message:"Explique os princípios da Administração Pública (LIMPE)"
 ```
 
 ### Direito Penal
-```
+
+```text
 /chat message:"Qual a diferença entre excludentes de ilicitude e excludentes de culpabilidade?"
 ```
 
 ### Preparação para Provas
-```
+
+```text
 /chat message:"Me faça 5 questões de múltipla escolha sobre Direito Tributário"
 ```
 
 ### Jurisprudência
-```
+
+```text
 /chat message:"Quais as principais súmulas do STJ sobre execução penal?"
 ```
 

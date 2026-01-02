@@ -45,7 +45,14 @@ for s in server_channels:
     try:
         values = s.split(":")
         if len(values) == 2:
-            SERVER_TO_MODERATION_CHANNEL[int(values[0])] = int(values[1])
+            server_id = int(values[0])
+            channel_id = int(values[1])
+
+            # Warn about duplicate server IDs
+            if server_id in SERVER_TO_MODERATION_CHANNEL:
+                logger.warning(f"Duplicate server ID {server_id} in SERVER_TO_MODERATION_CHANNEL. Overwriting previous value.")
+
+            SERVER_TO_MODERATION_CHANNEL[server_id] = channel_id
         else:
             logger.warning(f"Invalid SERVER_TO_MODERATION_CHANNEL entry: {s}")
     except (ValueError, IndexError) as e:
@@ -69,6 +76,6 @@ AVAILABLE_MODELS = Literal[
     "openai/gpt-4o",
     "anthropic/claude-3-opus",
     "anthropic/claude-3-sonnet",
-    "google/gemini-pro-1.5",
+    "google/gemini-2.0-flash-exp",
     "meta-llama/llama-3-70b-instruct"
 ]
