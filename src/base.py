@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional
 
 SEPARATOR_TOKEN = "<|endoftext|>"
 
@@ -18,23 +18,21 @@ class Message:
 
 @dataclass
 class Conversation:
-    messages: List[Message]
+    messages: list[Message]
 
     def prepend(self, message: Message):
         self.messages.insert(0, message)
         return self
 
     def render(self):
-        return f"\n{SEPARATOR_TOKEN}".join(
-            [message.render() for message in self.messages]
-        )
+        return f"\n{SEPARATOR_TOKEN}".join([message.render() for message in self.messages])
 
 
 @dataclass(frozen=True)
 class Config:
     name: str
     instructions: str
-    example_conversations: List[Conversation]
+    example_conversations: list[Conversation]
 
 
 @dataclass(frozen=True)
@@ -47,7 +45,7 @@ class ThreadConfig:
 @dataclass(frozen=True)
 class Prompt:
     header: Message
-    examples: List[Conversation]
+    examples: list[Conversation]
     convo: Conversation
 
     def full_render(self, bot_name):
@@ -75,7 +73,7 @@ class Prompt:
 
     def render_messages(self, bot_name):
         for message in self.convo.messages:
-            if not bot_name in message.user:
+            if bot_name not in message.user:
                 yield {
                     "role": "user",
                     "name": message.user,

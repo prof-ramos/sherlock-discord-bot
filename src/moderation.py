@@ -1,14 +1,13 @@
+from typing import Optional
+
+import discord
+
 from src.constants import (
     SERVER_TO_MODERATION_CHANNEL,
 )
-from typing import Optional, Tuple
-import discord
-from src.utils import logger
 
 
-def moderate_message(
-    message: str, user: str
-) -> Tuple[str, str]:  # [flagged_str, blocked_str]
+def moderate_message(message: str, user: str) -> tuple[str, str]:  # [flagged_str, blocked_str]
     # Moderação desativada: OpenRouter não possui endpoint /moderations
     # O OpenRouter já aplica filtros nativos em muitos modelos
     # Retorna strings vazias, significando "sem flag", "sem bloqueio"
@@ -38,9 +37,7 @@ async def send_moderation_flagged_message(
         moderation_channel = await fetch_moderation_channel(guild=guild)
         if moderation_channel:
             message = message[:100] if message else None
-            await moderation_channel.send(
-                f"⚠️ {user} - {flagged_str} - {message} - {url}"
-            )
+            await moderation_channel.send(f"⚠️ {user} - {flagged_str} - {message} - {url}")
 
 
 async def send_moderation_blocked_message(

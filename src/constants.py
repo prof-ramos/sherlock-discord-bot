@@ -1,81 +1,163 @@
-from dotenv import load_dotenv
 import os
+from pathlib import Path
+from typing import Any, Final, Literal
+
 import dacite
 import yaml
-from typing import Dict, List, Literal
+from dotenv import load_dotenv
 
 from src.base import Config
+from src.exceptions import ConfigError
 from src.utils import logger
 
 load_dotenv()
 
 
-# load config.yaml
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-CONFIG: Config = dacite.from_dict(
-    Config, yaml.safe_load(open(os.path.join(SCRIPT_DIR, "config.yaml"), "r"))
-)
+def get_env(key: str, default: Any = None, required: bool = True) -> Any:
+    """Retrieve environment variable or raise ConfigError if required and missing."""
+    if key not in os.environ and required:
+        raise ConfigError(f"Missing required environment variable: {key}")
+    return os.environ.get(key, default)
 
-BOT_NAME = CONFIG.name
-BOT_INSTRUCTIONS = CONFIG.instructions
-EXAMPLE_CONVOS = CONFIG.example_conversations
 
-# OpenRouter API base URL - Default points to OpenRouter
-# Can be changed to https://api.openai.com/v1 for direct OpenAI API usage
-OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
-
-DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
-DISCORD_CLIENT_ID = os.environ["DISCORD_CLIENT_ID"]
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-DEFAULT_MODEL = os.environ["DEFAULT_MODEL"]
-
-ALLOWED_SERVER_IDS: List[int] = []
-server_ids = os.environ["ALLOWED_SERVER_IDS"].split(",")
-for s in server_ids:
-    ALLOWED_SERVER_IDS.append(int(s))
-
-SERVER_TO_MODERATION_CHANNEL: Dict[int, int] = {}
-server_channels = os.environ.get("SERVER_TO_MODERATION_CHANNEL", "").split(",")
-for s in server_channels:
-    if not s.strip():  # Skip empty strings
-        continue
-    if ":" not in s:  # Validate format
-        logger.warning(f"Invalid SERVER_TO_MODERATION_CHANNEL format: {s}. Expected format: server_id:channel_id")
-        continue
+def _get_int_env(key: str, default: int) -> int:
     try:
-        values = s.split(":")
-        if len(values) == 2:
-            server_id = int(values[0])
-            channel_id = int(values[1])
+        val = os.environ.get(key)
+        if val is None or not val.strip():
+            return default
+        return int(val)
+    except (ValueError, TypeError):
+        logger.warning("Invalid value for environment variable %s, defaulting to %s", key, default)
+        return default
 
-            # Warn about duplicate server IDs
-            if server_id in SERVER_TO_MODERATION_CHANNEL:
-                logger.warning(f"Duplicate server ID {server_id} in SERVER_TO_MODERATION_CHANNEL. Overwriting previous value.")
 
-            SERVER_TO_MODERATION_CHANNEL[server_id] = channel_id
-        else:
-            logger.warning(f"Invalid SERVER_TO_MODERATION_CHANNEL entry: {s}")
-    except (ValueError, IndexError) as e:
-        logger.warning(f"Failed to parse SERVER_TO_MODERATION_CHANNEL entry '{s}': {e}")
+# Configuration Loading
+SCRIPT_DIR: Final[Path] = Path(__file__).parent.resolve()
+CONFIG_PATH: Final[Path] = SCRIPT_DIR / "config.yaml"
 
-# Send Messages, Create Public Threads, Send Messages in Threads, Manage Messages, Manage Threads, Read Message History, Use Slash Command
-BOT_INVITE_URL = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&permissions=328565073920&scope=bot"
+try:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
+        config_data = yaml.safe_load(f)
+    CONFIG: Final[Config] = dacite.from_dict(Config, config_data)
+except Exception as e:
+    raise ConfigError(f"Failed to load config.yaml: {e}") from e
 
-SECONDS_DELAY_RECEIVING_MSG = (
-    3  # give a delay for the bot to respond so it can catch multiple messages
+BOT_NAME: Final[str] = CONFIG.name
+BOT_INSTRUCTIONS: Final[str] = CONFIG.instructions
+EXAMPLE_CONVOS: Final[list] = CONFIG.example_conversations
+
+def _get_float_env(key: str, default: float) -> float:
+    try:
+        val = os.environ.get(key)
+        if val is None or not val.strip():
+            return default
+        return float(val)
+    except (ValueError, TypeError):
+        logger.warning("Invalid value for environment variable %s, defaulting to %s", key, default)
+        return default
+
+
+# API Configuration
+OPENROUTER_API_KEY: Final[str] = get_env("OPENROUTER_API_KEY")
+OPENROUTER_BASE_URL: Final[str] = get_env("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_MAX_RETRIES: Final[int] = _get_int_env("OPENROUTER_MAX_RETRIES", 3)
+OPENROUTER_TIMEOUT: Final[float] = _get_float_env("OPENROUTER_TIMEOUT", 60.0)
+DEFAULT_MODEL: Final[str] = get_env("DEFAULT_MODEL")
+
+# Discord Configuration
+DISCORD_BOT_TOKEN: Final[str] = get_env("DISCORD_BOT_TOKEN")
+DISCORD_CLIENT_ID: Final[str] = get_env("DISCORD_CLIENT_ID")
+
+# Allowed Server IDs
+def _parse_allowed_servers() -> list[int]:
+    raw = os.environ.get("ALLOWED_SERVER_IDS", "")
+    if not raw:
+        return []
+    servers: list[int] = []
+    for s in raw.split(","):
+        try:
+            val = s.strip()
+            if val:
+                servers.append(int(val))
+        except ValueError:
+            logger.warning("Invalid server ID in ALLOWED_SERVER_IDS: %s", s)
+    return servers
+
+
+ALLOWED_SERVER_IDS: Final[list[int]] = _parse_allowed_servers()
+
+
+# Moderation Channel Mapping
+def _parse_moderation_channels() -> dict[int, int]:
+    mapping: dict[int, int] = {}
+    raw = os.environ.get("SERVER_TO_MODERATION_CHANNEL", "")
+    if not raw:
+        return mapping
+
+    for entry in raw.split(","):
+        if not entry.strip() or ":" not in entry:
+            continue
+        try:
+            guild_id_str, channel_id_str = entry.split(":", 1)
+            mapping[int(guild_id_str)] = int(channel_id_str)
+        except ValueError as e:
+            logger.warning("Invalid moderation channel entry '%s': %s", entry, e)
+    return mapping
+
+
+SERVER_TO_MODERATION_CHANNEL: Final[dict[int, int]] = _parse_moderation_channels()
+
+# Derived Constants
+# Discord permissions integer (admin, manage channels, send messages, etc.)
+DISCORD_BOT_PERMISSIONS: Final[int] = 328565073920
+BOT_INVITE_URL: Final[str] = (
+    f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&permissions={DISCORD_BOT_PERMISSIONS}&scope=bot%20applications.commands"
 )
-MAX_THREAD_MESSAGES = 200
-ACTIVATE_THREAD_PREFX = "💬✅"
-INACTIVATE_THREAD_PREFIX = "💬❌"
-MAX_CHARS_PER_REPLY_MSG = (
-    1500  # discord has a 2k limit, we just break message into 1.5k
+
+# Operational Constants
+SECONDS_DELAY_RECEIVING_MSG: Final[int] = 3
+MAX_THREAD_MESSAGES: Final[int] = 200
+OPTIMIZED_HISTORY_LIMIT: Final[int] = 50  # Optimized limit for history search
+ACTIVATE_THREAD_PREFIX: Final[str] = "💬✅"
+INACTIVATE_THREAD_PREFIX: Final[str] = "💬❌"
+MAX_CHARS_PER_REPLY_MSG: Final[int] = 1500
+
+# Cache Configuration
+
+
+CACHE_MAX_SIZE: Final[int] = _get_int_env("CACHE_MAX_SIZE", 100)
+CACHE_TTL_SECONDS: Final[int] = _get_int_env("CACHE_TTL_SECONDS", 3600)
+
+# Available Models for runtime iteration and type hints
+MODELS_LIST: Final[tuple[str, ...]] = (
+    # OpenAI Models
+    "openai/gpt-3.5-turbo",
+    "openai/gpt-4o",
+    "openai/gpt-4-turbo",
+    # Anthropic Claude Models
+    "anthropic/claude-3-opus",
+    "anthropic/claude-3-sonnet",
+    "anthropic/claude-3-haiku",
+    # Google Models
+    "google/gemini-pro-1.5",
+    "google/gemini-2.0-flash-exp",
+    # Meta Llama Models
+    "meta-llama/llama-3-70b-instruct",
+    # Free Models
+    "xiaomi/mimo-v2-flash:free",
+    "deepseek/deepseek-chat-v3-0324:free",
 )
 
 AVAILABLE_MODELS = Literal[
     "openai/gpt-3.5-turbo",
     "openai/gpt-4o",
+    "openai/gpt-4-turbo",
     "anthropic/claude-3-opus",
     "anthropic/claude-3-sonnet",
+    "anthropic/claude-3-haiku",
+    "google/gemini-pro-1.5",
     "google/gemini-2.0-flash-exp",
-    "meta-llama/llama-3-70b-instruct"
+    "meta-llama/llama-3-70b-instruct",
+    "xiaomi/mimo-v2-flash:free",
+    "deepseek/deepseek-chat-v3-0324:free",
 ]

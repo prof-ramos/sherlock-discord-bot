@@ -1,26 +1,26 @@
 # 🔍 SherlockRamosBot
 
-<div align="center">
-
-**ChatBot inteligente no Discord para auxiliar concurseiros brasileiros com dúvidas jurídicas**
+### ChatBot inteligente no Discord para auxiliar concurseiros brasileiros com dúvidas jurídicas
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Discord.py](https://img.shields.io/badge/discord.py-2.6+-blue.svg)](https://discordpy.readthedocs.io/)
 [![OpenRouter](https://img.shields.io/badge/OpenRouter-API-green.svg)](https://openrouter.ai/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-</div>
-
 ---
 
 ## 📋 Sobre
 
-O **SherlockRamosBot** é um assistente virtual powered by IA projetado especialmente para concurseiros brasileiros. Utilizando modelos de linguagem avançados através da API do OpenRouter, o bot oferece suporte para tirar dúvidas sobre temas jurídicos, legislação, jurisprudência e muito mais.
+O **SherlockRamosBot** é um assistente virtual powered by IA projetado especialmente para
+concurseiros brasileiros. Utilizando modelos de linguagem avançados através da API do OpenRouter, o
+bot oferece suporte para tirar dúvidas sobre temas jurídicos, legislação, jurisprudência e muito
+mais.
 
 ## ✨ Principais Características
 
 - 🤖 **Múltiplos Modelos de IA**: Acesso a GPT-4, Claude, Gemini e LLaMA via OpenRouter
 - 💬 **Conversas Contextuais**: Mantém histórico da conversa em threads
+- 📚 **RAG Jurídico**: Base de conhecimento com legislação e jurisprudência (Busca Vetorial)
 - ⚡ **Respostas Rápidas**: Processamento otimizado para respostas ágeis
 - 🎯 **Foco Jurídico**: Personalizado para auxiliar em estudos para concursos
 - 🔒 **Seguro**: Sistema de moderação integrado
@@ -35,6 +35,7 @@ O **SherlockRamosBot** é um assistente virtual powered by IA projetado especial
 Inicia uma thread pública onde você pode conversar com o bot sobre suas dúvidas jurídicas.
 
 ### Parâmetros disponíveis
+
 - `message` (obrigatório): Sua pergunta ou dúvida
 - `temperature` (opcional): Controla a criatividade (0.0 a 2.0, padrão: 1.0)
 - `max_tokens` (opcional): Limite de tokens na resposta
@@ -64,6 +65,7 @@ Inicia uma thread pública onde você pode conversar com o bot sobre suas dúvid
 ## Pré-requisitos
 
 - Python 3.9 ou superior
+- [uv](https://docs.astral.sh/uv/) (gerenciador de pacotes rápido)
 - Conta no Discord com permissões de desenvolvedor
 - Chave de API do OpenRouter ([obtenha aqui](https://openrouter.ai/))
 
@@ -77,24 +79,25 @@ cd sherlock-discord-bot
 ## Passo 2: Instale as Dependências
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ## Passo 3: Configure as Variáveis de Ambiente
 
 1. Copie o arquivo de exemplo:
+
 ```bash
 cp .env.example .env
 ```
 
-2. Edite o arquivo `.env` com suas credenciais:
+1. Edite o arquivo `.env` com suas credenciais:
 
 ```env
 # Chave da API do OpenRouter (obtenha em: https://openrouter.ai/keys)
-OPENAI_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxx
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxx
 
 # URL Base do OpenRouter (não alterar)
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 
 # Token do Bot Discord (obtenha em: https://discord.com/developers/applications)
 DISCORD_BOT_TOKEN=seu_token_aqui
@@ -128,10 +131,11 @@ DEFAULT_MODEL=openai/gpt-3.5-turbo
 ## Passo 5: Execute o Bot
 
 ```bash
-python -m src.main
+uv run python -m src.main
 ```
 
-Você verá uma URL de convite no console. Copie e cole no navegador para adicionar o bot ao seu servidor!
+Você verá uma URL de convite no console. Copie e cole no navegador para adicionar o bot ao seu
+servidor!
 
 ---
 
@@ -139,17 +143,16 @@ Você verá uma URL de convite no console. Copie e cole no navegador para adicio
 
 O SherlockRamosBot suporta diversos modelos via OpenRouter:
 
-| Modelo | Descrição | Ideal Para |
-|--------|-----------|------------|
-| `openai/gpt-3.5-turbo` | Rápido e econômico | Dúvidas gerais, revisões |
-| `openai/gpt-4o` | Mais inteligente e preciso | Questões complexas, análises profundas |
-| `anthropic/claude-3-opus` | Excelente raciocínio | Interpretação de leis, argumentação |
-| `anthropic/claude-3-sonnet` | Balanceado | Uso geral, boa relação custo/benefício |
-| `google/gemini-2.0-flash-exp` | Rápido e avançado | Análise de textos longos, respostas ágeis |
-| `meta-llama/llama-3-70b-instruct` | Open source potente | Alternativa econômica |
+| Modelo                            | Descrição                  | Ideal Para                                |
+| --------------------------------- | -------------------------- | ----------------------------------------- |
+| `openai/gpt-3.5-turbo`            | Rápido e econômico         | Dúvidas gerais, revisões                  |
+| `openai/gpt-4o`                   | Mais inteligente e preciso | Questões complexas, análises profundas    |
+| `anthropic/claude-3-opus`         | Excelente raciocínio       | Interpretação de leis, argumentação       |
+| `anthropic/claude-3-sonnet`       | Balanceado                 | Uso geral, boa relação custo/benefício    |
+| `google/gemini-2.0-flash-exp`     | Rápido e avançado          | Análise de textos longos, respostas ágeis |
+| `meta-llama/llama-3-70b-instruct` | Open source potente        | Alternativa econômica                     |
 
-**Como alterar o modelo padrão:**
-Edite `DEFAULT_MODEL` no arquivo `.env`
+**Como alterar o modelo padrão:** Edite `DEFAULT_MODEL` no arquivo `.env`
 
 ---
 
@@ -160,14 +163,14 @@ Edite `DEFAULT_MODEL` no arquivo `.env`
 Edite o arquivo `src/config.yaml` para personalizar as instruções e exemplos:
 
 ```yaml
-name: "SherlockRamosBot"
-instructions: "Você é um assistente especializado em auxiliar concurseiros brasileiros..."
+name: 'SherlockRamosBot'
+instructions: 'Você é um assistente especializado em auxiliar concurseiros brasileiros...'
 example_conversations:
   - messages:
-    - user: "User"
-      text: "Explique o princípio da legalidade"
-    - user: "SherlockRamosBot"
-      text: "O princípio da legalidade estabelece que..."
+      - user: 'User'
+        text: 'Explique o princípio da legalidade'
+      - user: 'SherlockRamosBot'
+        text: 'O princípio da legalidade estabelece que...'
 ```
 
 ## Ajustando Parâmetros de Geração
@@ -175,6 +178,7 @@ example_conversations:
 No comando `/chat`, você pode ajustar:
 
 - **Temperature** (0.0 - 2.0):
+
   - `0.0-0.5`: Respostas mais objetivas e consistentes
   - `0.6-1.0`: Balanceado (recomendado)
   - `1.1-2.0`: Mais criativo e variado
@@ -245,7 +249,7 @@ Para funcionar corretamente, o bot precisa das seguintes permissões no Discord:
 
 1. Confirme que sua chave do OpenRouter está correta
 2. Verifique se tem créditos na conta do OpenRouter
-3. Confirme que `OPENAI_BASE_URL` está configurado corretamente
+3. Confirme que `OPENROUTER_BASE_URL` está configurado corretamente
 
 ### Bot fica offline
 
@@ -275,47 +279,52 @@ Funcionalidades planejadas para futuras versões do SherlockRamosBot:
 
 ### 🎯 Em Desenvolvimento
 
-#### RAG (Retrieval-Augmented Generation) com SupabaseCloud
+### ✅ Implementado (Beta)
+
+#### RAG (Retrieval-Augmented Generation)
+
 - **Objetivo**: Integrar base de conhecimento jurídica vetorizada
 - **Benefícios**:
   - 📚 Respostas baseadas em legislação específica armazenada
-  - 🎓 Banco de questões de concursos anteriores
-  - ⚖️ Jurisprudência e súmulas indexadas
-  - 📖 Doutrinas e materiais de estudo
-- **Stack Técnica**:
-  - Supabase Vector (pgvector) para armazenamento de embeddings
-  - OpenAI Embeddings ou similares para vetorização
-  - Busca semântica para recuperação de contexto relevante
-- **Status**: 🔄 Planejado
+  - 📖 Doutrinas e materiais de estudo indexados
+- **Como usar**:
+  - Administradores podem ingerir documentos usando `uv run scripts/ingest_docs.py arquivo.pdf`
+  - O bot consultará automaticamente a base ao responder
 
 ### 🚀 Próximas Features
 
 #### Sistema de Flashcards Interativos
+
 - Geração automática de flashcards a partir de tópicos estudados
 - Revisão espaçada baseada em algoritmo SM-2
 - Tracking de progresso por matéria
 
 #### Quiz e Simulados Personalizados
+
 - Geração de questões estilo banca (CESPE, FCC, FGV, etc.)
 - Simulados cronometrados
 - Análise de desempenho e estatísticas
 
 #### Assistente de Revisão Programada
+
 - Lembretes automáticos de revisão
 - Cronograma de estudos personalizado
 - Acompanhamento de metas diárias/semanais
 
 #### Integração com Legislação Atualizada
+
 - Sync automático com Planalto/DOU
 - Notificações de alterações legislativas importantes
 - Comparação de versões de leis (redação antiga vs. nova)
 
 #### Análise de Jurisprudência
+
 - Busca de decisões relevantes do STF/STJ
 - Resumos automáticos de julgados
 - Tendências jurisprudenciais por tema
 
 #### Sistema de Ranking e Gamificação
+
 - Sistema de pontos por interações
 - Badges de conquistas (estudou X dias seguidos, etc.)
 - Ranking semanal de estudantes mais ativos
@@ -331,7 +340,9 @@ Funcionalidades planejadas para futuras versões do SherlockRamosBot:
 
 ### 🤝 Contribua com Ideias
 
-Tem uma sugestão? Abra uma [Discussion](https://github.com/prof-ramos/sherlock-discord-bot/discussions) ou [Issue](https://github.com/prof-ramos/sherlock-discord-bot/issues) com a tag `enhancement`!
+Tem uma sugestão? Abra uma
+[Discussion](https://github.com/prof-ramos/sherlock-discord-bot/discussions) ou
+[Issue](https://github.com/prof-ramos/sherlock-discord-bot/issues) com a tag `enhancement`!
 
 ---
 
@@ -356,8 +367,9 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 ## 📞 Suporte
 
 - 🐛 **Bugs**: Abra uma [Issue](https://github.com/prof-ramos/sherlock-discord-bot/issues)
-- 💡 **Sugestões**: Abra uma [Discussion](https://github.com/prof-ramos/sherlock-discord-bot/discussions)
-- 📧 **Contato**: [seu-email@exemplo.com]
+- 💡 **Sugestões**: Abra uma
+  [Discussion](https://github.com/prof-ramos/sherlock-discord-bot/discussions)
+- 📧 **Contato**: [prof.ramos@exemplo.com]
 
 ---
 
@@ -370,10 +382,6 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ---
 
-<div align="center">
-
-**Desenvolvido com ❤️ para a comunidade de concurseiros brasileiros**
+### Desenvolvido com ❤️ para a comunidade de concurseiros brasileiros
 
 ⭐ Se este projeto te ajudou, considere dar uma estrela!
-
-</div>
