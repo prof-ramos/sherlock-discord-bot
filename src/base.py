@@ -1,5 +1,6 @@
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 SEPARATOR_TOKEN = "<|endoftext|>"
 
@@ -9,7 +10,7 @@ class Message:
     user: str
     text: Optional[str] = None
 
-    def render(self):
+    def render(self) -> str:
         result = self.user + ":"
         if self.text is not None:
             result += " " + self.text
@@ -20,11 +21,11 @@ class Message:
 class Conversation:
     messages: list[Message]
 
-    def prepend(self, message: Message):
+    def prepend(self, message: Message) -> "Conversation":
         self.messages.insert(0, message)
         return self
 
-    def render(self):
+    def render(self) -> str:
         return f"\n{SEPARATOR_TOKEN}".join([message.render() for message in self.messages])
 
 
@@ -92,6 +93,7 @@ class Prompt:
         provider = get_model_provider(model)
 
         # Anthropic supports explicit caching via cache_control
+        content: Union[str, list[dict[str, Any]]]
         if provider == "anthropic":
              content = [
                  {
@@ -125,7 +127,7 @@ class Prompt:
             messages.append(message)
         return messages
 
-    def render_messages(self, bot_name: str):
+    def render_messages(self, bot_name: str) -> Iterator[dict[str, Any]]:
         """Render the coversation messages as model history."""
         for message in self.convo.messages:
             if bot_name not in message.user:

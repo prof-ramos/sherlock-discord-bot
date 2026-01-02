@@ -31,6 +31,8 @@ class SherlockRamosBot(commands.Bot):
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
         self.db_service = db_service
+        self._cached_examples: list[Conversation] = []
+        self._cached_user: int = 0
     @property
     def bot_name(self) -> str:
         """Get the bot's name, favoring the actual Discord username if connected."""

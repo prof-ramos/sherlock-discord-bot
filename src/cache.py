@@ -10,7 +10,10 @@ import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from src.base import Message
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +44,7 @@ class LRUCache:
 
     def _hash_key(
         self,
-        messages: list,
+        messages: "list[Message]",
         model: str,
         temperature: float = 1.0,
         max_tokens: int = 512
@@ -69,7 +72,7 @@ class LRUCache:
 
     def get(
         self,
-        messages: list,
+        messages: "list[Message]",
         model: str,
         temperature: float = 1.0,
         max_tokens: int = 512
@@ -100,7 +103,7 @@ class LRUCache:
 
     def set(
         self,
-        messages: list,
+        messages: "list[Message]",
         model: str,
         value: Any,
         temperature: float = 1.0,

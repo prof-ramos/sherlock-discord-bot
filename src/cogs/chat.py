@@ -85,7 +85,7 @@ class ChatCog(commands.Cog):
         self,
         interaction: discord.Interaction,
         message: str,
-        model: AVAILABLE_MODELS = DEFAULT_MODEL,
+        model: AVAILABLE_MODELS = DEFAULT_MODEL,  # type: ignore[assignment]
         temperature: app_commands.Range[float, 0.0, 1.0] = 1.0,
         max_tokens: app_commands.Range[int, 1, 4096] = 512,
     ) -> None:

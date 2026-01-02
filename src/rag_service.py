@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Optional
+from typing import Any, Optional
 
 from openai import AsyncOpenAI
 from tenacity import retry, stop_after_attempt, wait_random_exponential
@@ -11,8 +11,9 @@ from src.utils import logger
 
 # Helper class to manage embeddings
 class EmbeddingService:
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_key = os.environ.get("OPENAI_API_KEY")
+        self.client: Optional[AsyncOpenAI]
         if not self.api_key:
             logger.warning("OPENAI_API_KEY not found. RAG functionality will be disabled.")
             self.client = None
@@ -49,10 +50,10 @@ class EmbeddingService:
 
 
 class RAGService:
-    def __init__(self):
+    def __init__(self) -> None:
         self.embedding_service = EmbeddingService()
 
-    async def add_documents(self, documents: list[str], metadatas: list[dict]) -> bool:
+    async def add_documents(self, documents: list[str], metadatas: list[dict[str, Any]]) -> bool:
         """Add documents to the Neon/Postgres vector store."""
         if not self.embedding_service.client:
             logger.error("Embedding service not configured. Cannot add documents.")
@@ -90,6 +91,7 @@ class RAGService:
                     meta_json = json.dumps(meta, default=str)
                 records.append((doc, meta_json, emb))
 
+            assert db_service.pool is not None, "Database pool must be initialized"
             async with db_service.pool.acquire() as conn, conn.transaction():
                 # Use executemany for valid batch insertion
                 # Note: asyncpg executemany corresponds to executing the same statement with different arguments
@@ -119,6 +121,7 @@ class RAGService:
                 return []
 
             await db_service.connect()
+            assert db_service.pool is not None, "Database pool must be initialized"
             async with db_service.pool.acquire() as conn:
                 # Use <=> operator for cosine distance (pgvector)
                 # We want the closest distance (smallest value)
@@ -143,9 +146,10 @@ class RAGService:
             # Return empty list to caller to degrade gracefully
             return []
 
-    async def get_stats(self) -> dict:
+    async def get_stats(self) -> dict[str, Any]:
         try:
             await db_service.connect()
+            assert db_service.pool is not None, "Database pool must be initialized"
             async with db_service.pool.acquire() as conn:
                 count = await conn.fetchval("SELECT COUNT(*) FROM documents")
                 return {"status": "active", "count": count, "backend": "neon-pgvector"}

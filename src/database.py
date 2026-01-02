@@ -21,7 +21,7 @@ class DatabaseService:
         self.pool: Optional[asyncpg.Pool] = None
         self._connect_lock = asyncio.Lock()
 
-    async def connect(self):
+    async def connect(self) -> None:
         """Establish connection pool if not already connected."""
         if self.pool:
             return
@@ -42,7 +42,7 @@ class DatabaseService:
                     logger.error("❌ Failed to connect to Neon: %s", e)
                     raise
 
-    async def close(self):
+    async def close(self) -> None:
         """Close the database pool."""
         async with self._connect_lock:
             if self.pool:
@@ -50,8 +50,9 @@ class DatabaseService:
                 self.pool = None
                 logger.info("🔌 Database pool closed")
 
-    async def save_thread(self, thread_id: int, guild_id: int, user_id: int, config: ThreadConfig):
+    async def save_thread(self, thread_id: int, guild_id: int, user_id: int, config: ThreadConfig) -> None:
         await self.connect()
+        assert self.pool is not None, "Database pool must be initialized"
         async with self.pool.acquire() as conn:
             await conn.execute(
                 """
@@ -68,6 +69,7 @@ class DatabaseService:
 
     async def get_thread_config(self, thread_id: int) -> Optional[ThreadConfig]:
         await self.connect()
+        assert self.pool is not None, "Database pool must be initialized"
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
                 "SELECT model, temperature, max_tokens FROM threads WHERE thread_id = $1 AND is_active = TRUE",
@@ -81,16 +83,18 @@ class DatabaseService:
                 )
             return None
 
-    async def log_message(self, thread_id: int, role: str, content: str, tokens: int = 0):
+    async def log_message(self, thread_id: int, role: str, content: str, tokens: int = 0) -> None:
         await self.connect()
+        assert self.pool is not None, "Database pool must be initialized"
         async with self.pool.acquire() as conn:
             await conn.execute(
                 "INSERT INTO messages (thread_id, role, content, token_count) VALUES ($1, $2, $3, $4)",
                 thread_id, role, content, tokens
             )
 
-    async def log_analytics(self, thread_id: int, guild_id: int, user_id: int, model: str, prompt_tokens: int, completion_tokens: int, response_time_ms: int):
+    async def log_analytics(self, thread_id: int, guild_id: int, user_id: int, model: str, prompt_tokens: int, completion_tokens: int, response_time_ms: int) -> None:
         await self.connect()
+        assert self.pool is not None, "Database pool must be initialized"
         async with self.pool.acquire() as conn:
             await conn.execute(
                 """

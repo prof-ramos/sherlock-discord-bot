@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Optional, cast
 
 import discord
 import openai
@@ -58,7 +58,7 @@ async def generate_completion_response(
     user: str,
     thread_config: ThreadConfig,
     bot_name: str = BOT_NAME,
-    example_conversations: list = EXAMPLE_CONVOS
+    example_conversations: list[Conversation] = EXAMPLE_CONVOS
 ) -> CompletionData:
     # Verificar cache primeiro
     cached = response_cache.get(
@@ -69,7 +69,7 @@ async def generate_completion_response(
     )
     if cached is not None:
         logger.info("🎯 Cache HIT for model %s (temp=%.1f)", thread_config.model, thread_config.temperature)
-        return cached
+        return cast(CompletionData, cached)
 
     try:
         # RAG Context Injection
@@ -178,7 +178,7 @@ async def generate_completion_response(
         )
 
 
-async def process_response(user: str, thread: discord.Thread, response_data: CompletionData):
+async def process_response(user: str, thread: discord.Thread, response_data: CompletionData) -> None:
     status = response_data.status
     reply_text = response_data.reply_text
     status_text = response_data.status_text

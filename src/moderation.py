@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import discord
 
@@ -16,12 +16,12 @@ def moderate_message(message: str, user: str) -> tuple[str, str]:  # [flagged_st
 
 async def fetch_moderation_channel(
     guild: Optional[discord.Guild],
-) -> Optional[discord.abc.GuildChannel]:
+) -> Optional[Union[discord.TextChannel, discord.VoiceChannel, discord.CategoryChannel, discord.ForumChannel]]:
     if not guild or not guild.id:
         return None
-    moderation_channel = SERVER_TO_MODERATION_CHANNEL.get(guild.id, None)
-    if moderation_channel:
-        channel = await guild.fetch_channel(moderation_channel)
+    moderation_channel_id = SERVER_TO_MODERATION_CHANNEL.get(guild.id, None)
+    if moderation_channel_id:
+        channel = await guild.fetch_channel(moderation_channel_id)
         return channel
     return None
 
@@ -32,12 +32,12 @@ async def send_moderation_flagged_message(
     flagged_str: Optional[str],
     message: Optional[str],
     url: Optional[str],
-):
+) -> None:
     if guild and flagged_str and len(flagged_str) > 0:
         moderation_channel = await fetch_moderation_channel(guild=guild)
-        if moderation_channel:
-            message = message[:100] if message else None
-            await moderation_channel.send(f"⚠️ {user} - {flagged_str} - {message} - {url}")
+        if moderation_channel and isinstance(moderation_channel, discord.TextChannel):
+            truncated_message = message[:100] if message else None
+            await moderation_channel.send(f"⚠️ {user} - {flagged_str} - {truncated_message} - {url}")
 
 
 async def send_moderation_blocked_message(
@@ -45,9 +45,9 @@ async def send_moderation_blocked_message(
     user: str,
     blocked_str: Optional[str],
     message: Optional[str],
-):
+) -> None:
     if guild and blocked_str and len(blocked_str) > 0:
         moderation_channel = await fetch_moderation_channel(guild=guild)
-        if moderation_channel:
-            message = message[:500] if message else None
-            await moderation_channel.send(f"❌ {user} - {blocked_str} - {message}")
+        if moderation_channel and isinstance(moderation_channel, discord.TextChannel):
+            truncated_message = message[:500] if message else None
+            await moderation_channel.send(f"❌ {user} - {blocked_str} - {truncated_message}")

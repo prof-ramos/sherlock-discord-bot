@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Final, Literal
+from typing import Any, Final, Literal, Optional
 
 import dacite
 import yaml
@@ -13,7 +13,7 @@ from src.utils import logger
 load_dotenv()
 
 
-def get_env(key: str, default: Any = None, required: bool = True) -> Any:
+def get_env(key: str, default: Optional[str] = None, required: bool = True) -> Optional[str]:
     """Retrieve environment variable or raise ConfigError if required and missing."""
     if key not in os.environ and required:
         raise ConfigError(f"Missing required environment variable: {key}")
@@ -59,18 +59,18 @@ def _get_float_env(key: str, default: float) -> float:
 
 
 # API Configuration
-OPENROUTER_API_KEY: Final[str] = get_env("OPENROUTER_API_KEY")
-OPENAI_API_KEY: Final[str | None] = get_env(
+OPENROUTER_API_KEY: Final[str] = get_env("OPENROUTER_API_KEY")  # type: ignore[assignment]
+OPENAI_API_KEY: Final[Optional[str]] = get_env(
     "OPENAI_API_KEY", required=False
 )  # Optional, strictly for embeddings if needed
-OPENROUTER_BASE_URL: Final[str] = get_env("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_BASE_URL: Final[str] = get_env("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")  # type: ignore[assignment]
 OPENROUTER_MAX_RETRIES: Final[int] = _get_int_env("OPENROUTER_MAX_RETRIES", 3)
 OPENROUTER_TIMEOUT: Final[float] = _get_float_env("OPENROUTER_TIMEOUT", 60.0)
-DEFAULT_MODEL: Final[str] = get_env("DEFAULT_MODEL")
+DEFAULT_MODEL: Final[str] = get_env("DEFAULT_MODEL")  # type: ignore[assignment]
 
 # Discord Configuration
-DISCORD_BOT_TOKEN: Final[str] = get_env("DISCORD_BOT_TOKEN")
-DISCORD_CLIENT_ID: Final[str] = get_env("DISCORD_CLIENT_ID")
+DISCORD_BOT_TOKEN: Final[str] = get_env("DISCORD_BOT_TOKEN")  # type: ignore[assignment]
+DISCORD_CLIENT_ID: Final[str] = get_env("DISCORD_CLIENT_ID")  # type: ignore[assignment]
 
 
 # Allowed Server IDs
