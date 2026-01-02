@@ -3,7 +3,6 @@ import logging
 import discord
 from discord.ext import commands
 
-from src import completion
 from src.base import Conversation, Message
 from src.cogs.chat import ChatCog
 from src.constants import (

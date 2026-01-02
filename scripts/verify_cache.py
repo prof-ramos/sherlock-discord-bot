@@ -1,7 +1,6 @@
-import sys
-from pathlib import Path
-
 import os
+import sys
+
 from src.base import Conversation, Message, Prompt
 
 

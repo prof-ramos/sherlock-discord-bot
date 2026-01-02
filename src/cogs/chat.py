@@ -1,5 +1,4 @@
 import asyncio
-from typing import Optional
 
 import discord
 from discord import Message as DiscordMessage
@@ -12,12 +11,14 @@ from src.completion import generate_completion_response, process_response
 from src.constants import (
     ACTIVATE_THREAD_PREFIX,
     AVAILABLE_MODELS,
+    DEFAULT_MENTION_MAX_TOKENS,
+    DEFAULT_MENTION_TEMPERATURE,
     DEFAULT_MODEL,
+    DEFAULT_THREAD_MAX_TOKENS,
+    DEFAULT_THREAD_TEMPERATURE,
     MAX_THREAD_MESSAGES,
     OPTIMIZED_HISTORY_LIMIT,
     SECONDS_DELAY_RECEIVING_MSG,
-    DEFAULT_MENTION_MAX_TOKENS,
-    DEFAULT_MENTION_TEMPERATURE
 )
 from src.database import DatabaseService
 from src.moderation import (
@@ -76,9 +77,7 @@ class ChatCog(commands.Cog):
     @app_commands.checks.bot_has_permissions(manage_threads=True)
     @app_commands.describe(message="The first prompt to start the chat with")
     @app_commands.describe(model="The model to use for the chat")
-    @app_commands.describe(
-        temperature="Controls randomness. Higher values mean more randomness."
-    )
+    @app_commands.describe(temperature="Controls randomness. Higher values mean more randomness.")
     @app_commands.describe(
         max_tokens="How many tokens the model should output at max for each message."
     )
@@ -98,8 +97,8 @@ class ChatCog(commands.Cog):
                 "user_name": interaction.user.name,
                 "guild_id": interaction.guild_id,
                 "channel_id": interaction.channel_id,
-                "command": "chat"
-            }
+                "command": "chat",
+            },
         )
         try:
             if not isinstance(interaction.channel, discord.TextChannel):
@@ -119,7 +118,7 @@ class ChatCog(commands.Cog):
             if len(message) > 4000:  # Discord's message limit is 4000 chars for slash commands
                 await interaction.response.send_message(
                     f"❌ A mensagem é muito longa ({len(message)} caracteres). Máximo permitido: 4000 caracteres.",
-                    ephemeral=True
+                    ephemeral=True,
                 )
                 return
 
@@ -132,8 +131,8 @@ class ChatCog(commands.Cog):
                     "message_length": len(message),
                     "model": model,
                     "temperature": temperature,
-                    "max_tokens": max_tokens
-                }
+                    "max_tokens": max_tokens,
+                },
             )
 
             if interaction.response.is_done():
@@ -202,9 +201,7 @@ class ChatCog(commands.Cog):
                 user_id=user.id,
                 config=thread_config,
             )
-            await self.db_service.log_message(
-                thread_id=thread.id, role="user", content=message
-            )
+            await self.db_service.log_message(thread_id=thread.id, role="user", content=message)
 
             async with thread.typing():
                 messages = [Message(user=user.name, text=message)]
@@ -213,7 +210,7 @@ class ChatCog(commands.Cog):
                     user=user,
                     thread_config=thread_config,
                     bot_name=self.bot.bot_name,
-                    example_conversations=self.bot.example_conversations
+                    example_conversations=self.bot.example_conversations,
                 )
                 if response_data.reply_text:
                     await self.db_service.log_message(
@@ -221,9 +218,7 @@ class ChatCog(commands.Cog):
                         role="assistant",
                         content=response_data.reply_text,
                     )
-                await process_response(
-                    user=user, thread=thread, response_data=response_data
-                )
+                await process_response(user=user, thread=thread, response_data=response_data)
         except Exception as exc:
             logger.exception("Failed to start chat: %s", exc)
             if not interaction.response.is_done():
@@ -231,17 +226,13 @@ class ChatCog(commands.Cog):
                     f"Failed to start chat: {str(exc)}", ephemeral=True
                 )
             else:
-                await interaction.followup.send(
-                    f"Failed to start chat: {str(exc)}", ephemeral=True
-                )
+                await interaction.followup.send(f"Failed to start chat: {str(exc)}", ephemeral=True)
 
     async def handle_mention(self, message: DiscordMessage) -> None:
         """Handle when the bot is mentioned directly in a channel."""
         content = message.content
         for mention in message.mentions:
-            content = content.replace(f"<@{mention.id}>", "").replace(
-                f"<@!{mention.id}>", ""
-            )
+            content = content.replace(f"<@{mention.id}>", "").replace(f"<@!{mention.id}>", "")
         content = content.strip()
 
         if not content:
@@ -257,8 +248,8 @@ class ChatCog(commands.Cog):
                 "user_name": message.author.name,
                 "guild_id": message.guild.id if message.guild else None,
                 "channel_id": message.channel.id,
-                "message_length": len(content)
-            }
+                "message_length": len(content),
+            },
         )
 
         flagged_str, blocked_str = moderate_message(message=content, user=message.author)
@@ -272,7 +263,7 @@ class ChatCog(commands.Cog):
         thread_config = ThreadConfig(
             model=DEFAULT_MODEL,
             max_tokens=DEFAULT_MENTION_MAX_TOKENS,
-            temperature=DEFAULT_MENTION_TEMPERATURE
+            temperature=DEFAULT_MENTION_TEMPERATURE,
         )
 
         async with message.channel.typing():
@@ -282,13 +273,10 @@ class ChatCog(commands.Cog):
                 user=message.author,
                 thread_config=thread_config,
                 bot_name=self.bot.bot_name,
-                example_conversations=self.bot.example_conversations
+                example_conversations=self.bot.example_conversations,
             )
 
-        if (
-            response_data.status == completion.CompletionResult.OK
-            and response_data.reply_text
-        ):
+        if response_data.status == completion.CompletionResult.OK and response_data.reply_text:
             for chunk in split_into_shorter_messages(response_data.reply_text):
                 await message.reply(chunk)
         elif response_data.status == completion.CompletionResult.TOO_LONG:
@@ -323,8 +311,10 @@ class ChatCog(commands.Cog):
             if thread.owner_id != self.bot.user.id:
                 return
 
-            if thread.archived or thread.locked or not thread.name.startswith(
-                ACTIVATE_THREAD_PREFIX
+            if (
+                thread.archived
+                or thread.locked
+                or not thread.name.startswith(ACTIVATE_THREAD_PREFIX)
             ):
                 return
 
@@ -402,8 +392,8 @@ class ChatCog(commands.Cog):
                     "thread_id": thread.id,
                     "thread_name": thread.name,
                     "message_length": len(message.content),
-                    "thread_message_count": thread.message_count
-                }
+                    "thread_message_count": thread.message_count,
+                },
             )
 
             await self.db_service.log_message(
@@ -421,7 +411,9 @@ class ChatCog(commands.Cog):
             thread_config = await self.db_service.get_thread_config(thread.id)
             if not thread_config:
                 thread_config = ThreadConfig(
-                    model=DEFAULT_MODEL, max_tokens=512, temperature=1.0
+                    model=DEFAULT_MODEL,
+                    max_tokens=DEFAULT_THREAD_MAX_TOKENS,
+                    temperature=DEFAULT_THREAD_TEMPERATURE,
                 )
 
             async with thread.typing():
@@ -430,7 +422,7 @@ class ChatCog(commands.Cog):
                     user=message.author,
                     thread_config=thread_config,
                     bot_name=self.bot.bot_name,
-                    example_conversations=self.bot.example_conversations
+                    example_conversations=self.bot.example_conversations,
                 )
                 if response_data.reply_text:
                     await self.db_service.log_message(
@@ -446,8 +438,6 @@ class ChatCog(commands.Cog):
             ):
                 return
 
-            await process_response(
-                user=message.author, thread=thread, response_data=response_data
-            )
-        except Exception as exc:
-            logger.exception(exc)
+            await process_response(user=message.author, thread=thread, response_data=response_data)
+        except Exception:
+            logger.exception("Error processing message in thread")

@@ -7,6 +7,9 @@ from pathlib import Path
 # Ensure src is in python path
 sys.path.append(str(Path(__file__).parent.parent))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 try:
     from bs4 import BeautifulSoup
 except ImportError:
@@ -139,12 +142,11 @@ async def main():
 
     # Prepare data for RAG
     documents = chunks
-    ids = [f"{file_path.stem}_{i}" for i in range(len(chunks))]
     metadatas = [{"source": file_path.name, "chunk_index": i} for i in range(len(chunks))]
 
     try:
         # Add to RAG
-        if await rag_service.add_documents(documents, metadatas, ids):
+        if await rag_service.add_documents(documents, metadatas):
             logger.info("✅ Successfully ingested %s", file_path.name)
         else:
             logger.error("❌ Failed to ingest document.")

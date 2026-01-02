@@ -3,9 +3,11 @@ import os
 from typing import Optional
 
 from openai import AsyncOpenAI
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from src.database import db_service
 from src.utils import logger
+
 
 # Helper class to manage embeddings
 class EmbeddingService:
@@ -21,23 +23,36 @@ class EmbeddingService:
         # If the user wants to use another provider, they can change the base_url here.
         self.model = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
 
-    async def get_embedding(self, text: str) -> Optional[list[float]]:
+    @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
+    async def get_embeddings(self, texts: list[str]) -> list[list[float]]:
         if not self.client:
-            return None
+            logger.error("Attempted to generate embeddings with no client configured.")
+            raise RuntimeError("Embedding service is not configured (missing OPENAI_API_KEY).")
         try:
-            # Replace newlines to improve performance as recommended by OpenAI
-            text = text.replace("\n", " ")
-            response = await self.client.embeddings.create(input=[text], model=self.model)
-            return response.data[0].embedding
+            # Replace newlines in all texts
+            cleaned_texts = [t.replace("\n", " ") for t in texts]
+            response = await self.client.embeddings.create(input=cleaned_texts, model=self.model)
+            # Sort by index to ensure order matches input
+            return [data.embedding for data in sorted(response.data, key=lambda x: x.index)]
         except Exception as e:
-            logger.error("Failed to generate embedding: %s", str(e))
+            logger.error("Failed to generate embeddings batch: %s", str(e))
+            raise e
+
+    async def get_embedding(self, text: str) -> Optional[list[float]]:
+        # Wrapper for single text backward compatibility if needed, using the batch method
+        try:
+            embs = await self.get_embeddings([text])
+            return embs[0] if embs else None
+        except Exception as e:
+            logger.error("Failed to generate single embedding: %s", str(e))
             return None
+
 
 class RAGService:
     def __init__(self):
         self.embedding_service = EmbeddingService()
 
-    async def add_documents(self, documents: list[str], metadatas: list[dict], ids: list[str]) -> bool:
+    async def add_documents(self, documents: list[str], metadatas: list[dict]) -> bool:
         """Add documents to the Neon/Postgres vector store."""
         if not self.embedding_service.client:
             logger.error("Embedding service not configured. Cannot add documents.")
@@ -49,28 +64,44 @@ class RAGService:
 
             # We insert one by one or batch. Batch is better.
             # But we need embeddings first.
-            embeddings = []
-            for doc in documents:
-                emb = await self.embedding_service.get_embedding(doc)
-                if emb:
-                    embeddings.append(emb)
-                else:
-                    # In case of failure, we skip or abort. Let's abort for data integrity.
-                    logger.error("Could not generate embedding for a document. Aborting batch.")
-                    return False
+            # Generate embeddings in batch
+            try:
+                embeddings = await self.embedding_service.get_embeddings(documents)
+            except Exception:
+                logger.error("Failed to generate embeddings after retries. Aborting batch.")
+                return False
 
-            async with db_service.pool.acquire() as conn:
-                async with conn.transaction():
-                    for doc, meta, emb in zip(documents, metadatas, embeddings):
-                        await conn.execute(
-                            """
-                            INSERT INTO documents (content, metadata, embedding)
-                            VALUES ($1, $2, $3)
-                            """,
-                            doc, json.dumps(meta), emb
-                        )
+            if len(embeddings) != len(documents):
+                logger.error("Mismatch in embedding count. Aborting.")
+                return False
 
-            logger.info("✅ Added %d documents to Neon vector store.", len(documents))
+            records = []
+            for doc, meta, emb in zip(documents, metadatas, embeddings):
+                try:
+                    meta_json = json.dumps(meta)
+                except (TypeError, ValueError) as e:
+                    logger.warning(
+                        "Failed to serialize metadata for document (first 100 chars: %s): %s. "
+                        "Using fallback serialization (default=str). in index %d",
+                        doc[:100] if doc else "N/A",
+                        str(e),
+                        documents.index(doc),
+                    )
+                    meta_json = json.dumps(meta, default=str)
+                records.append((doc, meta_json, emb))
+
+            async with db_service.pool.acquire() as conn, conn.transaction():
+                # Use executemany for valid batch insertion
+                # Note: asyncpg executemany corresponds to executing the same statement with different arguments
+                await conn.executemany(
+                    """
+                    INSERT INTO documents (content, metadata, embedding)
+                    VALUES ($1, $2, $3)
+                    """,
+                    records,
+                )
+
+            logger.info("✅ Added %d documents to Neon vector store in batch.", len(documents))
             return True
 
         except Exception as e:
@@ -98,12 +129,13 @@ class RAGService:
                     ORDER BY embedding <=> $1::vector
                     LIMIT $2
                     """,
-                    query_embedding, n_results  # Pass raw list, cast to vector in SQL
+                    query_embedding,
+                    n_results,  # Pass raw list, cast to vector in SQL
                 )
 
                 # Note: We pass the raw list of floats and cast it to vector in SQL
                 # using $1::vector syntax for compatibility with pgvector via asyncpg.
-                return [row['content'] for row in rows]
+                return [row["content"] for row in rows]
 
         except Exception as e:
             # Log the full stack trace internally
@@ -116,13 +148,10 @@ class RAGService:
             await db_service.connect()
             async with db_service.pool.acquire() as conn:
                 count = await conn.fetchval("SELECT COUNT(*) FROM documents")
-                return {
-                    "status": "active",
-                    "count": count,
-                    "backend": "neon-pgvector"
-                }
+                return {"status": "active", "count": count, "backend": "neon-pgvector"}
         except Exception as e:
             logger.error("Failed to get RAG stats: %s", str(e))
             return {"status": "error", "error": str(e)}
+
 
 rag_service = RAGService()

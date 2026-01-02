@@ -46,6 +46,7 @@ BOT_NAME: Final[str] = CONFIG.name
 BOT_INSTRUCTIONS: Final[str] = CONFIG.instructions
 EXAMPLE_CONVOS: Final[list] = CONFIG.example_conversations
 
+
 def _get_float_env(key: str, default: float) -> float:
     try:
         val = os.environ.get(key)
@@ -59,7 +60,9 @@ def _get_float_env(key: str, default: float) -> float:
 
 # API Configuration
 OPENROUTER_API_KEY: Final[str] = get_env("OPENROUTER_API_KEY")
-OPENAI_API_KEY: Final[str | None] = get_env("OPENAI_API_KEY", required=False) # Optional, strictly for embeddings if needed
+OPENAI_API_KEY: Final[str | None] = get_env(
+    "OPENAI_API_KEY", required=False
+)  # Optional, strictly for embeddings if needed
 OPENROUTER_BASE_URL: Final[str] = get_env("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 OPENROUTER_MAX_RETRIES: Final[int] = _get_int_env("OPENROUTER_MAX_RETRIES", 3)
 OPENROUTER_TIMEOUT: Final[float] = _get_float_env("OPENROUTER_TIMEOUT", 60.0)
@@ -68,6 +71,7 @@ DEFAULT_MODEL: Final[str] = get_env("DEFAULT_MODEL")
 # Discord Configuration
 DISCORD_BOT_TOKEN: Final[str] = get_env("DISCORD_BOT_TOKEN")
 DISCORD_CLIENT_ID: Final[str] = get_env("DISCORD_CLIENT_ID")
+
 
 # Allowed Server IDs
 def _parse_allowed_servers() -> list[int]:
@@ -163,3 +167,7 @@ AVAILABLE_MODELS = Literal[
     "xiaomi/mimo-v2-flash:free",
     "deepseek/deepseek-chat-v3-0324:free",
 ]
+
+# Thread Defaults
+DEFAULT_THREAD_MAX_TOKENS: Final[int] = 512
+DEFAULT_THREAD_TEMPERATURE: Final[float] = 1.0
