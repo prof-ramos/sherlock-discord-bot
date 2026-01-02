@@ -1,6 +1,6 @@
 # 🔍 SherlockRamosBot
 
-### ChatBot inteligente no Discord para auxiliar concurseiros brasileiros com dúvidas jurídicas
+## ChatBot inteligente no Discord para auxiliar concurseiros brasileiros com dúvidas jurídicas
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Discord.py](https://img.shields.io/badge/discord.py-2.6+-blue.svg)](https://discordpy.readthedocs.io/)
@@ -12,9 +12,9 @@
 ## 📋 Sobre
 
 O **SherlockRamosBot** é um assistente virtual powered by IA projetado especialmente para
-concurseiros brasileiros. Utilizando modelos de linguagem avançados através da API do OpenRouter, o
-bot oferece suporte para tirar dúvidas sobre temas jurídicos, legislação, jurisprudência e muito
-mais.
+concurseiros brasileiros. Utilizando modelos de linguagem avançados através da API do
+OpenRouter, o bot oferece suporte para tirar dúvidas sobre temas jurídicos, legislação,
+jurisprudência e muito mais.
 
 ## ✨ Principais Características
 
@@ -143,14 +143,14 @@ servidor!
 
 O SherlockRamosBot suporta diversos modelos via OpenRouter:
 
-| Modelo                            | Descrição                  | Ideal Para                                |
-| --------------------------------- | -------------------------- | ----------------------------------------- |
-| `openai/gpt-3.5-turbo`            | Rápido e econômico         | Dúvidas gerais, revisões                  |
-| `openai/gpt-4o`                   | Mais inteligente e preciso | Questões complexas, análises profundas    |
-| `anthropic/claude-3-opus`         | Excelente raciocínio       | Interpretação de leis, argumentação       |
-| `anthropic/claude-3-sonnet`       | Balanceado                 | Uso geral, boa relação custo/benefício    |
-| `google/gemini-2.0-flash-exp`     | Rápido e avançado          | Análise de textos longos, respostas ágeis |
-| `meta-llama/llama-3-70b-instruct` | Open source potente        | Alternativa econômica                     |
+| Modelo                            | Descrição                  | Ideal Para                          |
+| --------------------------------- | -------------------------- | ----------------------------------- |
+| `openai/gpt-3.5-turbo`            | Rápido e econômico         | Dúvidas gerais, revisões            |
+| `openai/gpt-4o`                   | Mais inteligente e preciso | Questões complexas, análises        |
+| `anthropic/claude-3-opus`         | Excelente raciocínio       | Interpretação de leis, argumentação |
+| `anthropic/claude-3-sonnet`       | Balanceado                 | Uso geral, boa relação custo        |
+| `google/gemini-2.0-flash-exp`     | Rápido e avançado          | Análise de textos, respostas ágeis  |
+| `meta-llama/llama-3-70b-instruct` | Open source potente        | Alternativa econômica               |
 
 **Como alterar o modelo padrão:** Edite `DEFAULT_MODEL` no arquivo `.env`
 
@@ -385,3 +385,5 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 ### Desenvolvido com ❤️ para a comunidade de concurseiros brasileiros
 
 ⭐ Se este projeto te ajudou, considere dar uma estrela!
+
+[prof.ramos@exemplo.com]: mailto:prof.ramos@exemplo.com

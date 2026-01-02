@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.rag_service import rag_service
+
 try:
     from pypdf import PdfReader
 except ImportError:

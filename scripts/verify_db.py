@@ -1,8 +1,18 @@
 import asyncio
+import logging
 import os
-from src.database import db_service
-from src.base import ThreadConfig
-from src.utils import logger
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from src.base import ThreadConfig  # noqa: E402
+from src.database import db_service  # noqa: E402
+from src.utils import logger  # noqa: E402
+
+# Configure logging to show output, only if not already configured
+if not logging.getLogger().hasHandlers():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 async def verify_db():
     try:

@@ -7,6 +7,7 @@ import asyncpg
 from src.base import ThreadConfig
 from src.utils import logger
 
+
 class DatabaseService:
     def __init__(self):
         self.dsn = os.environ.get("DATABASE_URL")
@@ -31,9 +32,10 @@ class DatabaseService:
                 try:
                     self.pool = await asyncpg.create_pool(
                         self.dsn,
-                        min_size=1,
-                        max_size=10,
-                        command_timeout=60,
+                        min_size=1,            # Keep at least one connection warm
+                        max_size=5,            # Limit max connections to share resources
+                        command_timeout=30,    # Fail fast if DB is sleeping/cold
+                        max_inactive_connection_lifetime=300 # Recycle connections commonly
                     )
                     logger.info("✅ Connected to Neon Database pool")
                 except Exception as e:
