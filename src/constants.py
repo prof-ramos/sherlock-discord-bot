@@ -5,6 +5,7 @@ import yaml
 from typing import Dict, List, Literal
 
 from src.base import Config
+from src.utils import logger
 
 load_dotenv()
 
@@ -19,6 +20,8 @@ BOT_NAME = CONFIG.name
 BOT_INSTRUCTIONS = CONFIG.instructions
 EXAMPLE_CONVOS = CONFIG.example_conversations
 
+# OpenRouter API base URL - Default points to OpenRouter
+# Can be changed to https://api.openai.com/v1 for direct OpenAI API usage
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
 
 DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
@@ -34,39 +37,22 @@ for s in server_ids:
 SERVER_TO_MODERATION_CHANNEL: Dict[int, int] = {}
 server_channels = os.environ.get("SERVER_TO_MODERATION_CHANNEL", "").split(",")
 for s in server_channels:
-    values = s.split(":")
-    SERVER_TO_MODERATION_CHANNEL[int(values[0])] = int(values[1])
+    if not s.strip():  # Skip empty strings
+        continue
+    if ":" not in s:  # Validate format
+        logger.warning(f"Invalid SERVER_TO_MODERATION_CHANNEL format: {s}. Expected format: server_id:channel_id")
+        continue
+    try:
+        values = s.split(":")
+        if len(values) == 2:
+            SERVER_TO_MODERATION_CHANNEL[int(values[0])] = int(values[1])
+        else:
+            logger.warning(f"Invalid SERVER_TO_MODERATION_CHANNEL entry: {s}")
+    except (ValueError, IndexError) as e:
+        logger.warning(f"Failed to parse SERVER_TO_MODERATION_CHANNEL entry '{s}': {e}")
 
 # Send Messages, Create Public Threads, Send Messages in Threads, Manage Messages, Manage Threads, Read Message History, Use Slash Command
 BOT_INVITE_URL = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&permissions=328565073920&scope=bot"
-
-MODERATION_VALUES_FOR_BLOCKED = {
-    "harassment": 0.5,
-    "harassment/threatening": 0.1,
-    "hate": 0.5,
-    "hate/threatening": 0.1,
-    "self-harm": 0.2,
-    "self-harm/instructions": 0.5,
-    "self-harm/intent": 0.7,
-    "sexual": 0.5,
-    "sexual/minors": 0.2,
-    "violence": 0.7,
-    "violence/graphic": 0.8,
-}
-
-MODERATION_VALUES_FOR_FLAGGED = {
-    "harassment": 0.5,
-    "harassment/threatening": 0.1,
-    "hate": 0.4,
-    "hate/threatening": 0.05,
-    "self-harm": 0.1,
-    "self-harm/instructions": 0.5,
-    "self-harm/intent": 0.7,
-    "sexual": 0.3,
-    "sexual/minors": 0.1,
-    "violence": 0.1,
-    "violence/graphic": 0.1,
-}
 
 SECONDS_DELAY_RECEIVING_MSG = (
     3  # give a delay for the bot to respond so it can catch multiple messages

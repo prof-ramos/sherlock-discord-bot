@@ -3,7 +3,6 @@ from dataclasses import dataclass
 import openai
 from openai import AsyncOpenAI
 
-from src.moderation import moderate_message
 from typing import Optional, List
 from src.constants import (
     BOT_INSTRUCTIONS,
@@ -71,23 +70,10 @@ async def generate_completion_response(
             },
         )
         reply = response.choices[0].message.content.strip()
-        if reply:
-            flagged_str, blocked_str = moderate_message(
-                message=(rendered[-1]["content"] + reply)[-500:], user=user
-            )
-            if len(blocked_str) > 0:
-                return CompletionData(
-                    status=CompletionResult.MODERATION_BLOCKED,
-                    reply_text=reply,
-                    status_text=f"from_response:{blocked_str}",
-                )
 
-            if len(flagged_str) > 0:
-                return CompletionData(
-                    status=CompletionResult.MODERATION_FLAGGED,
-                    reply_text=reply,
-                    status_text=f"from_response:{flagged_str}",
-                )
+        # Note: API-based moderation is disabled for OpenRouter
+        # OpenRouter applies native filtering on many models
+        # Custom moderation logic can be added here if needed in the future
 
         return CompletionData(
             status=CompletionResult.OK, reply_text=reply, status_text=None
