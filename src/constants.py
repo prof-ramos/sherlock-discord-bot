@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Final, Literal, Optional
+from typing import Any, Final, Literal
 
 import dacite
 import yaml
@@ -122,17 +122,15 @@ OPTIMIZED_HISTORY_LIMIT: Final[int] = 50  # Optimized limit for history search
 ACTIVATE_THREAD_PREFIX: Final[str] = "💬✅"
 INACTIVATE_THREAD_PREFIX: Final[str] = "💬❌"
 MAX_CHARS_PER_REPLY_MSG: Final[int] = 1500
+# Defaults for direct mentions
+DEFAULT_MENTION_MAX_TOKENS: Final[int] = 1024
+DEFAULT_MENTION_TEMPERATURE: Final[float] = 0.7
 
 # Cache Configuration
-
-
 CACHE_MAX_SIZE: Final[int] = _get_int_env("CACHE_MAX_SIZE", 100)
 CACHE_TTL_SECONDS: Final[int] = _get_int_env("CACHE_TTL_SECONDS", 3600)
 
 # Available Models for runtime iteration and type hints
-DEFAULT_MENTION_MAX_TOKENS: Final[int] = 1024
-DEFAULT_MENTION_TEMPERATURE: Final[float] = 0.7
-
 MODELS_LIST: Final[tuple[str, ...]] = (
     # OpenAI Models
     "openai/gpt-3.5-turbo",

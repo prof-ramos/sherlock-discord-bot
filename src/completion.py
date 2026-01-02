@@ -76,10 +76,10 @@ async def generate_completion_response(
         rag_context = ""
         try:
             # Extract last user message for query
-            last_user_msg = next((m.text for m in reversed(messages) if m.user == user), None)
+            last_user_msg = next((m.text for m in reversed(messages) if m.user == str(user)), None)
             if last_user_msg:
                 from src.rag_service import rag_service
-                docs = rag_service.query(last_user_msg)
+                docs = await rag_service.query(last_user_msg)
                 if docs:
                     # Use "system" for consistency with other system messages
                     rag_text = "RELEVANT LEGAL CONTEXT:\n" + "\n---\n".join(docs) + "\n\nUse the above context to answer the user's question if relevant."
@@ -91,15 +91,13 @@ async def generate_completion_response(
         system_instruction = f"Instructions for {bot_name}: {BOT_INSTRUCTIONS}"
 
         # Create example conversations with the bot's actual name
-        bot_example_conversations = []
-        for convo in example_conversations:
-            messages_list = []
-            for msg in convo.messages:
-                if msg.user == BOT_NAME:
-                    messages_list.append(Message(user=bot_name, text=msg.text))
-                else:
-                    messages_list.append(msg)
-            bot_example_conversations.append(Conversation(messages=messages_list))
+        bot_example_conversations = [
+            Conversation(messages=[
+                Message(user=bot_name, text=msg.text) if msg.user == BOT_NAME else msg
+                for msg in convo.messages
+            ])
+            for convo in example_conversations
+        ]
 
         prompt = Prompt(
             header=Message("system", system_instruction),

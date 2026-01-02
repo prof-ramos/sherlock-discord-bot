@@ -101,10 +101,9 @@ class RAGService:
                     query_embedding, n_results  # Pass raw list, cast to vector in SQL
                 )
 
-        # Note: We pass the raw list of floats and cast it to vector in SQL
-        # using $1::vector syntax for compatibility with pgvector via asyncpg.
-
-        return [row['content'] for row in rows]
+                # Note: We pass the raw list of floats and cast it to vector in SQL
+                # using $1::vector syntax for compatibility with pgvector via asyncpg.
+                return [row['content'] for row in rows]
 
         except Exception as e:
             # Log the full stack trace internally

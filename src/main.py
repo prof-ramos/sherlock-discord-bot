@@ -32,9 +32,31 @@ class SherlockRamosBot(commands.Bot):
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
         self.db_service = db_service
-        # Store bot configuration instead of mutating globals
-        self.bot_name = BOT_NAME
-        self.example_conversations = EXAMPLE_CONVOS
+    @property
+    def bot_name(self) -> str:
+        """Get the bot's name, favoring the actual Discord username if connected."""
+        return self.user.name if self.user else BOT_NAME
+
+    @property
+    def example_conversations(self) -> list[Conversation]:
+        """Get example conversations with the actual bot name injected."""
+        if not self.user:
+            return EXAMPLE_CONVOS
+
+        # Cache the processed conversations to avoid rebuilding them
+        if hasattr(self, "_cached_examples") and getattr(self, "_cached_user", None) == self.user.id:
+            return self._cached_examples
+
+        processed = [
+            Conversation(messages=[
+                Message(user=self.user.name, text=msg.text) if msg.user == BOT_NAME else msg
+                for msg in convo.messages
+            ])
+            for convo in EXAMPLE_CONVOS
+        ]
+        self._cached_examples = processed
+        self._cached_user = self.user.id
+        return processed
 
     async def setup_hook(self) -> None:
         """Load cogs and sync application commands."""
@@ -61,18 +83,6 @@ class SherlockRamosBot(commands.Bot):
         logger.info("Connected to %d guilds:", len(self.guilds))
         for guild in self.guilds:
             logger.info("  - %s (ID: %d)", guild.name, guild.id)
-
-        # Update bot configuration with actual Discord username
-        self.bot_name = self.user.name
-        self.example_conversations = []
-        for convo in EXAMPLE_CONVOS:
-            messages = []
-            for msg in convo.messages:
-                if msg.user == BOT_NAME:
-                    messages.append(Message(user=self.user.name, text=msg.text))
-                else:
-                    messages.append(msg)
-            self.example_conversations.append(Conversation(messages=messages))
 
     async def close(self) -> None:
         """Log performance metrics before closing the bot."""

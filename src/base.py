@@ -42,14 +42,11 @@ class ThreadConfig:
     temperature: float
 
 
-@dataclass(frozen=True)
-class Prompt:
-    header: Message
-    examples: list[Conversation]
-    convo: Conversation
-
-def get_model_provider(model: str) -> str:
+def get_model_provider(model: Optional[str]) -> str:
     """Normalize model provider from string."""
+    if not model or not isinstance(model, str):
+        return "other"
+
     model_lower = model.lower()
     if "anthropic" in model_lower:
         return "anthropic"
@@ -59,13 +56,20 @@ def get_model_provider(model: str) -> str:
         return "openai"
     return "other"
 
+
+@dataclass(frozen=True)
+class Prompt:
+    header: Message
+    examples: list[Conversation]
+    convo: Conversation
+
     def full_render(self, bot_name: str, model: str, extra_context: str = "") -> list[dict[str, Any]]:
+        """Render the full prompt for the model, handling provider-specific caching."""
         if not model or not model.strip():
             raise ValueError("Model must be a non-empty string.")
 
         # 1. Build Static Part (Instructions + Examples)
-        # This part is constant across requests and should be cached.
-        # Immutability note: static_parts are computed once per render but could be pre-computed.
+        # Separated to allow prompt caching of invariant parts.
         static_parts = [self.header.render()] + \
                        [Message("system", "Example conversations:").render()] + \
                        [conversation.render() for conversation in self.examples]
@@ -73,11 +77,11 @@ def get_model_provider(model: str) -> str:
         static_text = f"\n{SEPARATOR_TOKEN}".join(static_parts)
 
         # 2. Build Dynamic Part (RAG Context + Transition)
-        # This part changes per request (or per turn structure).
         dynamic_parts = []
-        if extra_context:
-            dynamic_parts.append(extra_context)
-            # Only add the transition message if we have extra context or dynamic parts
+        if extra_context and extra_context.strip():
+            # Trim and validate extra_context before using it
+            cleaned_context = extra_context.strip()
+            dynamic_parts.append(cleaned_context)
             dynamic_parts.append(
                 Message("system", "Now, you will work with the actual current conversation.").render()
             )
@@ -99,12 +103,12 @@ def get_model_provider(model: str) -> str:
              if dynamic_text:
                  content.append({"type": "text", "text": dynamic_text})
         elif provider == "gemini":
-            # Gemini: Use structured content but without cache_control for now (unless supported)
+            # Gemini: Use structured content but without cache_control keys
             content = [{"type": "text", "text": static_text}]
             if dynamic_text:
                 content.append({"type": "text", "text": dynamic_text})
         else:
-             # Legacy/OpenAI format (implicit caching works better with static prefix)
+             # Legacy/OpenAI format
              if dynamic_text:
                  content = static_text + f"\n{SEPARATOR_TOKEN}" + dynamic_text
              else:
@@ -121,7 +125,8 @@ def get_model_provider(model: str) -> str:
             messages.append(message)
         return messages
 
-    def render_messages(self, bot_name):
+    def render_messages(self, bot_name: str):
+        """Render the coversation messages as model history."""
         for message in self.convo.messages:
             if bot_name not in message.user:
                 yield {

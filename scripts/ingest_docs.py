@@ -96,7 +96,7 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[st
 
     return chunks
 
-def main():
+async def main():
     parser = argparse.ArgumentParser(description="Ingest documents into Sherlock's Knowledge Base")
     parser.add_argument("file_path", type=Path, help="Path to the PDF, DOCX, HTML, or TXT file to ingest")
     parser.add_argument("--chunk-size", type=int, default=1000, help="Size of text chunks")
@@ -142,24 +142,22 @@ def main():
     ids = [f"{file_path.stem}_{i}" for i in range(len(chunks))]
     metadatas = [{"source": file_path.name, "chunk_index": i} for i in range(len(chunks))]
 
-    async def ingest():
-        try:
-            # Add to RAG
-            if await rag_service.add_documents(documents, metadatas, ids):
-                logger.info("✅ Successfully ingested %s", file_path.name)
-            else:
-                logger.error("❌ Failed to ingest document.")
-                sys.exit(1)
-        except Exception as e:
-            logger.error("❌ RAG service error during ingestion: %s", e)
-            sys.exit(1)
-
     try:
-        asyncio.run(ingest())
+        # Add to RAG
+        if await rag_service.add_documents(documents, metadatas, ids):
+            logger.info("✅ Successfully ingested %s", file_path.name)
+        else:
+            logger.error("❌ Failed to ingest document.")
+            sys.exit(1)
+    except Exception as e:
+        logger.error("❌ RAG service error during ingestion: %s", e)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Ingestion cancelled.")
     except Exception as e:
         logger.exception("Ingestion failed: %s", e)
-
-if __name__ == "__main__":
-    main()
