@@ -2,8 +2,7 @@
 
 import time
 
-import pytest
-from src.cache import LRUCache, CacheEntry
+from src.cache import CacheEntry, LRUCache
 
 
 class TestCacheEntry:

@@ -105,6 +105,21 @@ def timed_sync(func: F) -> F:
     return wrapper  # type: ignore[return-value]
 
 
+
+def _build_metrics_summary(metrics: dict[str, PerformanceMetrics]) -> dict[str, dict[str, Any]]:
+    """Builds a summary dictionary from raw metrics."""
+    return {
+        name: {
+            "calls": m.call_count,
+            "avg_ms": round(m.avg_time_ms, 2),
+            "min_ms": round(m.min_time_ms, 2) if m.min_time_ms != float("inf") else 0,
+            "max_ms": round(m.max_time_ms, 2),
+            "total_ms": round(m.total_time_ms, 2),
+        }
+        for name, m in metrics.items()
+    }
+
+
 async def get_metrics_summary() -> dict[str, dict[str, Any]]:
     """Returns a summary of collected metrics.
 
@@ -116,16 +131,7 @@ async def get_metrics_summary() -> dict[str, dict[str, Any]]:
             # Create a copy to avoid concurrency issues during iteration
             metrics_copy = dict(_metrics)
 
-    return {
-        name: {
-            "calls": m.call_count,
-            "avg_ms": round(m.avg_time_ms, 2),
-            "min_ms": round(m.min_time_ms, 2) if m.min_time_ms != float("inf") else 0,
-            "max_ms": round(m.max_time_ms, 2),
-            "total_ms": round(m.total_time_ms, 2),
-        }
-        for name, m in metrics_copy.items()
-    }
+    return _build_metrics_summary(metrics_copy)
 
 
 async def reset_metrics() -> None:
@@ -133,6 +139,17 @@ async def reset_metrics() -> None:
     async with _get_metrics_lock():
         with _metrics_sync_lock:
             _metrics.clear()
+
+
+
+def _format_metric_line(name: str, data: dict[str, Any]) -> str:
+    """Formats a single metric line for logging."""
+    return (
+        f"   {name}: {data['calls']} calls, "
+        f"avg={data['avg_ms']:.2f}ms, "
+        f"min={data['min_ms']:.2f}ms, "
+        f"max={data['max_ms']:.2f}ms"
+    )
 
 
 async def log_metrics_summary() -> None:
@@ -144,11 +161,22 @@ async def log_metrics_summary() -> None:
 
     logger.info("📊 Performance Metrics Summary:")
     for name, data in sorted(summary.items(), key=lambda x: x[1]["total_ms"], reverse=True):
-        logger.info(
-            "   %s: %d calls, avg=%.2fms, min=%.2fms, max=%.2fms",
-            name,
-            data["calls"],
-            data["avg_ms"],
-            data["min_ms"],
-            data["max_ms"],
-        )
+        logger.info(_format_metric_line(name, data).strip())
+
+
+def log_metrics_summary_sync() -> None:
+    """Logs a summary of collected metrics synchronously for atexit/signals."""
+    with _metrics_sync_lock:
+        # Create a copy to avoid concurrency issues during iteration
+        metrics_copy = dict(_metrics)
+
+    summary = _build_metrics_summary(metrics_copy)
+
+    if not summary:
+        print("📊 No performance metrics collected yet (sync).")
+        return
+
+    # Use print instead of logger in atexit, as logging may be shut down
+    print("📊 Performance Metrics Summary (atexit/signal):")
+    for name, data in sorted(summary.items(), key=lambda x: x[1]["total_ms"], reverse=True):
+        print(_format_metric_line(name, data))

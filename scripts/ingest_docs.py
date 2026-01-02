@@ -1,3 +1,4 @@
+import asyncio
 import argparse
 import logging
 import sys
@@ -13,6 +14,16 @@ try:
 except ImportError:
     PdfReader = None  # type: ignore
 
+try:
+    from docx import Document
+except ImportError:
+    Document = None  # type: ignore
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None  # type: ignore
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -25,6 +36,39 @@ def extract_text_from_pdf(pdf_path: Path) -> str:
     text = ""
     for page in reader.pages:
         text += page.extract_text() + "\n"
+    return text
+
+def extract_text_from_docx(docx_path: Path) -> str:
+    if not Document:
+        logger.error("python-docx not installed. Cannot read DOCX files.")
+        sys.exit(1)
+
+    doc = Document(docx_path)
+    text = ""
+    for paragraph in doc.paragraphs:
+        text += paragraph.text + "\n"
+    return text
+
+def extract_text_from_html(html_path: Path) -> str:
+    if not BeautifulSoup:
+        logger.error("beautifulsoup4 not installed. Cannot read HTML files.")
+        sys.exit(1)
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        soup = BeautifulSoup(f, 'html.parser')
+
+    # Remove script and style elements
+    for script in soup(["script", "style"]):
+        script.extract()
+
+    # Get text
+    text = soup.get_text()
+
+    # Clean up whitespace
+    lines = (line.strip() for line in text.splitlines())
+    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+    text = '\n'.join(chunk for chunk in chunks if chunk)
+
     return text
 
 def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[str]:
@@ -54,7 +98,7 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[st
 
 def main():
     parser = argparse.ArgumentParser(description="Ingest documents into Sherlock's Knowledge Base")
-    parser.add_argument("file_path", type=Path, help="Path to the PDF or TXT file to ingest")
+    parser.add_argument("file_path", type=Path, help="Path to the PDF, DOCX, HTML, or TXT file to ingest")
     parser.add_argument("--chunk-size", type=int, default=1000, help="Size of text chunks")
     parser.add_argument("--overlap", type=int, default=200, help="Overlap between chunks")
 
@@ -67,15 +111,23 @@ def main():
 
     logger.info("📄 Processing file: %s", file_path.name)
 
-    # Extract text
-    if file_path.suffix.lower() == ".pdf":
-        text = extract_text_from_pdf(file_path)
-    else:
-        try:
+    # Extract text based on file type
+    suffix = file_path.suffix.lower()
+    try:
+        if suffix == ".pdf":
+            text = extract_text_from_pdf(file_path)
+        elif suffix == ".docx":
+            text = extract_text_from_docx(file_path)
+        elif suffix == ".html":
+            text = extract_text_from_html(file_path)
+        elif suffix in [".txt", ".md", ".text"]:
             text = file_path.read_text(encoding="utf-8")
-        except Exception as e:
-            logger.error("Failed to read text file: %s", e)
+        else:
+            logger.error("Unsupported file format: %s. Supported formats: PDF, DOCX, HTML, TXT, MD", suffix)
             sys.exit(1)
+    except Exception as e:
+        logger.error("Failed to extract text from %s: %s", file_path.name, e)
+        sys.exit(1)
 
     if not text.strip():
         logger.warning("No text found in file.")
@@ -85,16 +137,29 @@ def main():
     chunks = chunk_text(text, chunk_size=args.chunk_size, overlap=args.overlap)
     logger.info("🧩 Split into %d chunks", len(chunks))
 
-    # Prepare data for ChromaDB
+    # Prepare data for RAG
     documents = chunks
     ids = [f"{file_path.stem}_{i}" for i in range(len(chunks))]
     metadatas = [{"source": file_path.name, "chunk_index": i} for i in range(len(chunks))]
 
-    # Add to RAG
-    if rag_service.add_documents(documents, metadatas, ids):
-        logger.info("✅ Successfully ingested %s", file_path.name)
-    else:
-        logger.error("❌ Failed to ingest document.")
+    async def ingest():
+        try:
+            # Add to RAG
+            if await rag_service.add_documents(documents, metadatas, ids):
+                logger.info("✅ Successfully ingested %s", file_path.name)
+            else:
+                logger.error("❌ Failed to ingest document.")
+                sys.exit(1)
+        except Exception as e:
+            logger.error("❌ RAG service error during ingestion: %s", e)
+            sys.exit(1)
+
+    try:
+        asyncio.run(ingest())
+    except KeyboardInterrupt:
+        logger.info("Ingestion cancelled.")
+    except Exception as e:
+        logger.exception("Ingestion failed: %s", e)
 
 if __name__ == "__main__":
     main()

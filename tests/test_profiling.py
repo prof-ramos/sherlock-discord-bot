@@ -3,10 +3,10 @@
 import pytest
 from src.profiling import (
     PerformanceMetrics,
-    timed,
-    timed_sync,
     get_metrics_summary,
     reset_metrics,
+    timed,
+    timed_sync,
 )
 
 

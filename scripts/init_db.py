@@ -29,8 +29,18 @@ async def init_db():
         logger.info("✅ Connection established.")
 
         schema_path = os.path.join(os.path.dirname(__file__), "init_schema.sql")
-        with open(schema_path, "r") as f:
+        rag_schema_path = os.path.join(os.path.dirname(__file__), "init_rag_pgvector.sql")
+        with open(schema_path) as f:
             schema = f.read()
+
+        logger.info("🏗️ Applying schema...")
+
+        # Execute schema application within a transaction for safety
+        if os.path.exists(rag_schema_path):
+            with open(rag_schema_path) as f:
+                rag_schema = f.read()
+        else:
+            rag_schema = None
 
         logger.info("🏗️ Applying schema...")
 
@@ -39,8 +49,17 @@ async def init_db():
             # asyncpg execute can handle multiple statements in a simple script block usually,
             # but explicit transaction ensures atomicity.
             await conn.execute(schema)
+            applied_msg = "✅ Primary schema applied."
 
-        logger.info("✅ Schema applied successfully.")
+            # Apply RAG Vector Storage Schema
+            if rag_schema:
+                logger.info("🧠 Applying RAG/Vector schema...")
+                await conn.execute(rag_schema)
+                applied_msg += " RAG/Vector schema applied."
+            else:
+                applied_msg += " RAG schema not found (skipped)."
+
+        logger.info(applied_msg)
 
     except asyncio.TimeoutError:
         logger.error("❌ Connection timed out after 10 seconds.")

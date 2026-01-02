@@ -1,6 +1,5 @@
 """Tests for utility functions."""
 
-import pytest
 from src.utils import split_into_shorter_messages
 
 

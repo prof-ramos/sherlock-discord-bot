@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 SEPARATOR_TOKEN = "<|endoftext|>"
 
@@ -48,28 +48,78 @@ class Prompt:
     examples: list[Conversation]
     convo: Conversation
 
-    def full_render(self, bot_name):
+def get_model_provider(model: str) -> str:
+    """Normalize model provider from string."""
+    model_lower = model.lower()
+    if "anthropic" in model_lower:
+        return "anthropic"
+    if "gemini" in model_lower or "google" in model_lower:
+        return "gemini"
+    if "openai" in model_lower:
+        return "openai"
+    return "other"
+
+    def full_render(self, bot_name: str, model: str, extra_context: str = "") -> list[dict[str, Any]]:
+        if not model or not model.strip():
+            raise ValueError("Model must be a non-empty string.")
+
+        # 1. Build Static Part (Instructions + Examples)
+        # This part is constant across requests and should be cached.
+        # Immutability note: static_parts are computed once per render but could be pre-computed.
+        static_parts = [self.header.render()] + \
+                       [Message("system", "Example conversations:").render()] + \
+                       [conversation.render() for conversation in self.examples]
+
+        static_text = f"\n{SEPARATOR_TOKEN}".join(static_parts)
+
+        # 2. Build Dynamic Part (RAG Context + Transition)
+        # This part changes per request (or per turn structure).
+        dynamic_parts = []
+        if extra_context:
+            dynamic_parts.append(extra_context)
+            # Only add the transition message if we have extra context or dynamic parts
+            dynamic_parts.append(
+                Message("system", "Now, you will work with the actual current conversation.").render()
+            )
+
+        dynamic_text = f"\n{SEPARATOR_TOKEN}".join(dynamic_parts)
+
+        # 3. Construct System Content based on Model
+        provider = get_model_provider(model)
+
+        # Anthropic supports explicit caching via cache_control
+        if provider == "anthropic":
+             content = [
+                 {
+                     "type": "text",
+                     "text": static_text,
+                     "cache_control": {"type": "ephemeral"}
+                 }
+             ]
+             if dynamic_text:
+                 content.append({"type": "text", "text": dynamic_text})
+        elif provider == "gemini":
+            # Gemini: Use structured content but without cache_control for now (unless supported)
+            content = [{"type": "text", "text": static_text}]
+            if dynamic_text:
+                content.append({"type": "text", "text": dynamic_text})
+        else:
+             # Legacy/OpenAI format (implicit caching works better with static prefix)
+             if dynamic_text:
+                 content = static_text + f"\n{SEPARATOR_TOKEN}" + dynamic_text
+             else:
+                 content = static_text
+
         messages = [
             {
                 "role": "system",
-                "content": self.render_system_prompt(),
+                "content": content,
             }
         ]
+
         for message in self.render_messages(bot_name):
             messages.append(message)
         return messages
-
-    def render_system_prompt(self):
-        return f"\n{SEPARATOR_TOKEN}".join(
-            [self.header.render()]
-            + [Message("System", "Example conversations:").render()]
-            + [conversation.render() for conversation in self.examples]
-            + [
-                Message(
-                    "System", "Now, you will work with the actual current conversation."
-                ).render()
-            ]
-        )
 
     def render_messages(self, bot_name):
         for message in self.convo.messages:

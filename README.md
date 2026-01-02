@@ -1,389 +1,275 @@
-# 🔍 SherlockRamosBot
+# SherlockRamosBot
 
-## ChatBot inteligente no Discord para auxiliar concurseiros brasileiros com dúvidas jurídicas
+[![Python Version](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![discord.py](https://img.shields.io/badge/discord-py-blue.svg)](https://github.com/Rapptz/discord.py)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Discord.py](https://img.shields.io/badge/discord.py-2.6+-blue.svg)](https://discordpy.readthedocs.io/)
-[![OpenRouter](https://img.shields.io/badge/OpenRouter-API-green.svg)](https://openrouter.ai/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+Um chatbot sofisticado para Discord, projetado para auxiliar estudantes de direito e concurseiros no
+Brasil, tudo com o poder de LLMs via OpenRouter.
 
----
+## 📜 Descrição
 
-## 📋 Sobre
+SherlockRamosBot é um assistente de IA para Discord, focado em fornecer respostas rápidas e precisas
+sobre uma vasta gama de tópicos jurídicos. Ele foi criado para resolver a necessidade de acesso
+rápido a informações legais complexas e materiais de estudo para estudantes e profissionais que se
+preparam para concursos públicos no Brasil.
 
-O **SherlockRamosBot** é um assistente virtual powered by IA projetado especialmente para
-concurseiros brasileiros. Utilizando modelos de linguagem avançados através da API do
-OpenRouter, o bot oferece suporte para tirar dúvidas sobre temas jurídicos, legislação,
-jurisprudência e muito mais.
+### ✨ Principais Características
 
-## ✨ Principais Características
+- **Consultas em Linguagem Natural**: Faça perguntas jurídicas complexas em português e receba
+  respostas claras e contextualizadas.
+- **Memória Persistente (Neon/PostgreSQL)**: Armazena histórico de conversas e analytics em um banco
+  de dados PostgreSQL serverless (Neon), garantindo continuidade e análise de dados.
+- **Geração Aumentada por Recuperação (RAG)**: Utiliza o `chromadb` para consultar uma base de
+  conhecimento especializada, garantindo respostas mais precisas e fundamentadas.
+- **Otimização de Custos (Prompt Caching)**: Suporte automático a cache de prompt para modelos
+  Anthropic e Google Gemini, reduzindo custos de inferência.
+- **Suporte a Múltiplos LLMs**: Integrado com a API da OpenRouter, permitindo flexibilidade na
+  escolha do modelo de linguagem.
+- **Personalidade Customizável**: O comportamento e o tom do bot podem ser facilmente ajustados
+  através de um arquivo de configuração (`config.yaml`).
+- **Moderação Integrada**: Ferramentas para monitorar e moderar as interações, garantindo um
+  ambiente seguro.
 
-- 🤖 **Múltiplos Modelos de IA**: Acesso a GPT-4, Claude, Gemini e LLaMA via OpenRouter
-- 💬 **Conversas Contextuais**: Mantém histórico da conversa em threads
-- 📚 **RAG Jurídico**: Base de conhecimento com legislação e jurisprudência (Busca Vetorial)
-- ⚡ **Respostas Rápidas**: Processamento otimizado para respostas ágeis
-- 🎯 **Foco Jurídico**: Personalizado para auxiliar em estudos para concursos
-- 🔒 **Seguro**: Sistema de moderação integrado
-- 🌐 **Multi-servidor**: Pode ser usado em vários servidores Discord simultaneamente
+## 📚 Tabela de Conteúdos
 
----
+1. [Descrição](#-descrição)
+2. [Instalação](#-instalação)
+3. [Uso Rápido](#️-uso-rápido)
+4. [Configuração](#️-configuração)
+5. [Desenvolvimento](#-desenvolvimento)
+6. [Testes](#testes)
+7. [Contribuição](#-contribuição)
+8. [Licença](#-licença)
+9. [Autores e Agradecimentos](#-autores-e-agradecimentos)
+10. [Suporte](#-suporte)
 
-## 🚀 Funcionalidades
+## 🚀 Instalação
 
-## Comando Principal: `/chat`
+Siga os passos abaixo para configurar e executar o SherlockRamosBot em seu próprio servidor.
 
-Inicia uma thread pública onde você pode conversar com o bot sobre suas dúvidas jurídicas.
+### Pré-requisitos
 
-### Parâmetros disponíveis
+- Python 3.13+
+- [uv](https://github.com/astral-sh/uv) (um instalador e resolvedor de pacotes Python rápido)
 
-- `message` (obrigatório): Sua pergunta ou dúvida
-- `temperature` (opcional): Controla a criatividade (0.0 a 2.0, padrão: 1.0)
-- `max_tokens` (opcional): Limite de tokens na resposta
+### Passos de Instalação
 
-### Exemplos de uso
+1. **Clone o repositório:**
 
-```text
-/chat message:"Qual a diferença entre crime doloso e culposo?"
+   ```bash
+   git clone https://github.com/prof-ramos/sherlock-discord-bot.git
+   cd sherlock-discord-bot
+   ```
 
-/chat message:"Explique o princípio da legalidade no Direito Administrativo" temperature:0.7
+2. **Instale as dependências:** Use `uv` para sincronizar o ambiente virtual e instalar todos os
+   pacotes necessários.
 
-/chat message:"Cite 3 súmulas importantes do STF sobre direito constitucional"
-```
+   ```bash
+   uv sync
+   ```
 
-### Como funciona
+3. **Configure as variáveis de ambiente:** Copie o arquivo de exemplo e preencha com suas próprias
+   chaves de API e IDs.
 
-1. Use `/chat` para iniciar uma conversa em uma thread pública
-2. O bot responderá à sua mensagem inicial
-3. Continue fazendo perguntas na mesma thread - o bot lembrará do contexto
-4. A thread é encerrada automaticamente quando atingir o limite de mensagens ou tokens
-5. Você pode iniciar quantas threads quiser!
+   ```bash
+   cp .env.example .env
+   ```
 
----
+   Edite o arquivo `.env` com suas credenciais do Discord e da OpenRouter.
 
-## 🛠️ Instalação e Configuração
+## ⚡️ Uso Rápido
 
-## Pré-requisitos
+Após a instalação e configuração, você pode iniciar o bot.
 
-- Python 3.9 ou superior
-- [uv](https://docs.astral.sh/uv/) (gerenciador de pacotes rápido)
-- Conta no Discord com permissões de desenvolvedor
-- Chave de API do OpenRouter ([obtenha aqui](https://openrouter.ai/))
+1. **Execute o bot:**
 
-## Passo 1: Clone o Repositório
+   ```bash
+   uv run sherlock-bot
+   ```
 
-```bash
-git clone https://github.com/prof-ramos/sherlock-discord-bot.git
-cd sherlock-discord-bot
-```
+   Alternativa:
 
-## Passo 2: Instale as Dependências
+   ```bash
+   uv run python -m src.main
+   ```
 
-```bash
-uv sync
-```
+   Se tudo estiver configurado corretamente, o bot ficará online no seu servidor do Discord.
 
-## Passo 3: Configure as Variáveis de Ambiente
+2. **Interaja com o Bot:** Para fazer uma pergunta, simplesmente mencione o bot no início da sua
+   mensagem em qualquer canal que ele tenha permissão para ler.
 
-1. Copie o arquivo de exemplo:
+   **Exemplo de Interação:**
 
-```bash
-cp .env.example .env
-```
+   > **Usuário:** @SherlockRamosBot qual a diferença entre dolo e culpa no direito penal?
+   >
+   > **SherlockRamosBot:** A diferença fundamental entre dolo e culpa reside na intenção do agente.
+   > No dolo, o agente tem a intenção de produzir o resultado... Na culpa, o agente não deseja o
+   > resultado, mas o causa por imprudência, negligência ou imperícia...
 
-1. Edite o arquivo `.env` com suas credenciais:
+## ⚙️ Configuração
+
+A configuração principal do bot é feita através de variáveis de ambiente e um arquivo de
+configuração YAML.
+
+### Variáveis de Ambiente
+
+O arquivo `.env` armazena as chaves e configurações sensíveis. Consulte `.env.example` para ver
+todas as opções disponíveis.
+
+- `OPENROUTER_API_KEY`: Sua chave de API da OpenRouter.
+- `DISCORD_BOT_TOKEN`: O token do seu bot do Discord.
+- `DISCORD_CLIENT_ID`: O ID do cliente do seu aplicativo Discord.
+- `ALLOWED_SERVER_IDS`: IDs dos servidores do Discord onde o bot pode operar.
+- `DEFAULT_MODEL`: O modelo de LLM padrão a ser usado (ex: `openai/gpt-3.5-turbo`).
+- `DATABASE_URL`: String de conexão para o banco de dados PostgreSQL (Neon).
+
+### Personalidade do Bot
+
+O arquivo `src/config.yaml` controla a persona do bot, incluindo o prompt do sistema e exemplos de
+poucas interações (few-shot examples) que guiam seu tom e estilo de resposta. Você pode editar este
+arquivo para ajustar o comportamento do bot.
+
+## 🧱 Estrutura do Código (Cogs)
+
+- `src/main.py`: Entry point com `commands.Bot`, `setup_hook` para carregar cogs e sincronizar
+  comandos.
+- `src/cogs/chat.py`: Slash command `/chat`, handler de menções e mensagens em threads.
+- `src/completion.py`: Integração com OpenRouter e montagem de respostas.
+- `src/database.py`: Persistencia de threads, mensagens e analytics.
+
+Para adicionar novos comandos, crie um novo Cog em `src/cogs/` e carregue-o no `setup_hook`. Mais
+detalhes em `docs/architecture.md` e `docs/commands.md`.
+
+## 🔐 Permissões e Segurança
+
+- Comandos de configuracao devem ser restritos a administradores (ex: `administrator=True`).
+- O bot aplica allowlist de servidores via `ALLOWED_SERVER_IDS`.
+
+## 🗄️ Configuração do Banco de Dados (Neon)
+
+O projeto utiliza **Neon** (PostgreSQL Serverless) para armazenar estados, histórico e métricas.
+
+1. Crie um projeto no [Neon Console](https://console.neon.tech).
+2. Obtenha a string de conexão (Pooled connection é recomendada para serverless/lambdas, mas direct
+   work para containers persistentes).
+3. Adicione ao seu `.env`:
 
 ```env
-# Chave da API do OpenRouter (obtenha em: https://openrouter.ai/keys)
-OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxx
-
-# URL Base do OpenRouter (não alterar)
-OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-
-# Token do Bot Discord (obtenha em: https://discord.com/developers/applications)
-DISCORD_BOT_TOKEN=seu_token_aqui
-
-# Client ID do Discord
-DISCORD_CLIENT_ID=seu_client_id_aqui
-
-# IDs dos servidores permitidos (separe por vírgula)
-ALLOWED_SERVER_IDS=123456789,987654321
-
-# Canal de moderação (formato: server_id:channel_id)
-SERVER_TO_MODERATION_CHANNEL=123456789:987654321
-
-# Modelo padrão (veja modelos disponíveis abaixo)
-DEFAULT_MODEL=openai/gpt-3.5-turbo
+DATABASE_URL=postgres://user:password@host/neondb?sslmode=require
 ```
 
-## Passo 4: Configure seu Bot no Discord
+O bot gerenciará as conexões automaticamente usando `asyncpg`.
 
-1. Acesse o [Discord Developer Portal](https://discord.com/developers/applications)
-2. Clique em "New Application" e dê um nome ao seu bot
-3. Vá à aba "Bot" e clique em "Add Bot"
-   - Clique em "Reset Token" e copie o token para `DISCORD_BOT_TOKEN`
-   - Desative "Public Bot" se não quiser que outros vejam seu bot
-   - **IMPORTANTE**: Ative "Message Content Intent" em "Privileged Gateway Intents"
-4. Vá à aba "OAuth2" e copie o "Client ID" para `DISCORD_CLIENT_ID`
-5. Para obter o ID do servidor:
-   - No Discord, clique com botão direito no ícone do servidor
-   - Clique em "Copiar ID" e cole em `ALLOWED_SERVER_IDS`
+## 📚 Configuração da Base de Conhecimento (RAG)
 
-## Passo 5: Execute o Bot
+O bot utiliza o **próprio banco de dados Neon** com a extensão `pgvector` para armazenar a base de
+conhecimento (RAG), unificando toda a persistência.
+
+### 1. Pré-requisitos
+
+Certifique-se de que a variável `OPENAI_API_KEY` está definida no `.env` para a geração de
+embeddings (por padrão usa `text-embedding-3-small`).
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+### 2. Formato dos Documentos
+
+Coloque seus documentos (artigos, leis, doutrinas) na pasta `data/`. Formatos suportados: `.txt`,
+`.md`, `.pdf`.
+
+### 3. Ingestão de Dados
+
+Para processar e indexar os documentos no Neon:
 
 ```bash
-uv run python -m src.main
+uv run python scripts/ingest_docs.py arquivo.pdf
 ```
 
-Você verá uma URL de convite no console. Copie e cole no navegador para adicionar o bot ao seu
-servidor!
+Este script irá:
 
----
+1. Ler o arquivo
+2. Gerar embeddings via OpenAI
+3. Salvar os vetores na tabela `documents` do seu banco Neon.
 
-## 🤖 Modelos Disponíveis
+### 4. Verificação
 
-O SherlockRamosBot suporta diversos modelos via OpenRouter:
+Você pode verificar se os documentos foram inseridos conectando no banco e rodando:
 
-| Modelo                            | Descrição                  | Ideal Para                          |
-| --------------------------------- | -------------------------- | ----------------------------------- |
-| `openai/gpt-3.5-turbo`            | Rápido e econômico         | Dúvidas gerais, revisões            |
-| `openai/gpt-4o`                   | Mais inteligente e preciso | Questões complexas, análises        |
-| `anthropic/claude-3-opus`         | Excelente raciocínio       | Interpretação de leis, argumentação |
-| `anthropic/claude-3-sonnet`       | Balanceado                 | Uso geral, boa relação custo        |
-| `google/gemini-2.0-flash-exp`     | Rápido e avançado          | Análise de textos, respostas ágeis  |
-| `meta-llama/llama-3-70b-instruct` | Open source potente        | Alternativa econômica               |
-
-**Como alterar o modelo padrão:** Edite `DEFAULT_MODEL` no arquivo `.env`
-
----
-
-## ⚙️ Personalização
-
-## Ajustando a Personalidade do Bot
-
-Edite o arquivo `src/config.yaml` para personalizar as instruções e exemplos:
-
-```yaml
-name: 'SherlockRamosBot'
-instructions: 'Você é um assistente especializado em auxiliar concurseiros brasileiros...'
-example_conversations:
-  - messages:
-      - user: 'User'
-        text: 'Explique o princípio da legalidade'
-      - user: 'SherlockRamosBot'
-        text: 'O princípio da legalidade estabelece que...'
+```sql
+SELECT count(*) FROM documents;
 ```
 
-## Ajustando Parâmetros de Geração
+## 👨‍💻 Desenvolvimento
 
-No comando `/chat`, você pode ajustar:
+O ambiente de desenvolvimento usa as mesmas etapas da instalação. Certifique-se de instalar as
+dependências de desenvolvimento.
 
-- **Temperature** (0.0 - 2.0):
+### Configurando o Ambiente de Desenvolvimento
 
-  - `0.0-0.5`: Respostas mais objetivas e consistentes
-  - `0.6-1.0`: Balanceado (recomendado)
-  - `1.1-2.0`: Mais criativo e variado
+Para instalar as ferramentas de desenvolvimento (como `ruff`, `mypy` e `pytest`), use:
 
-- **Max Tokens**: Limite de tamanho da resposta
-  - Padrão: 1000 tokens (~750 palavras)
-  - Máximo recomendado: 2000 tokens
-
----
-
-## 🔒 Permissões Necessárias
-
-Para funcionar corretamente, o bot precisa das seguintes permissões no Discord:
-
-- ✅ Enviar Mensagens
-- ✅ Enviar Mensagens em Threads
-- ✅ Criar Threads Públicas
-- ✅ Gerenciar Mensagens (para moderação)
-- ✅ Gerenciar Threads
-- ✅ Ler Histórico de Mensagens
-- ✅ Usar Comandos de Aplicação
-
----
-
-## 📚 Exemplos de Uso para Concurseiros
-
-### Dúvidas de Direito Constitucional
-
-```text
-/chat message:"Quais são os direitos e garantias fundamentais previstos no Art. 5º da CF/88?"
+```bash
+uv sync --dev
 ```
 
-### Questões de Direito Administrativo
+### Verificação de Qualidade (Ordem Recomendada)
 
-```text
-/chat message:"Explique os princípios da Administração Pública (LIMPE)"
-```
+1. **Linting e Formatação (Ruff):**
 
-### Direito Penal
+   ```bash
+   uv run ruff check . --fix
+   uv run ruff format .
+   ```
 
-```text
-/chat message:"Qual a diferença entre excludentes de ilicitude e excludentes de culpabilidade?"
-```
+2. **Verificação de Tipos (Mypy):**
 
-### Preparação para Provas
+   ```bash
+   uv run mypy src
+   ```
 
-```text
-/chat message:"Me faça 5 questões de múltipla escolha sobre Direito Tributário"
-```
+3. **Testes Automatizados (Pytest):**
 
-### Jurisprudência
+   ```bash
+   uv run pytest -v
+   ```
 
-```text
-/chat message:"Quais as principais súmulas do STJ sobre execução penal?"
-```
+   Exemplo de saída esperada:
 
----
+   ```text
+   tests/test_basic.py::test_example PASSED [100%]
+   ```
 
-## 🐛 Solução de Problemas
+## 🤝 Contribuição
 
-### O bot não responde aos comandos
+Contribuições são muito bem-vindas! Se você deseja melhorar o SherlockRamosBot, siga estes passos:
 
-1. Verifique se o bot tem as permissões necessárias no canal
-2. Confirme que "Message Content Intent" está ativado no Developer Portal
-3. Verifique se o servidor está na lista `ALLOWED_SERVER_IDS`
+1. Faça um Fork do repositório.
+2. Crie uma nova branch (`git checkout -b feature/sua-feature`).
+3. Faça suas alterações e commit (`git commit -m 'Adiciona nova feature'`).
+4. Execute os testes e as ferramentas de lint para garantir a qualidade do código.
+5. Envie um Pull Request.
 
-### Erro de autenticação da API
-
-1. Confirme que sua chave do OpenRouter está correta
-2. Verifique se tem créditos na conta do OpenRouter
-3. Confirme que `OPENROUTER_BASE_URL` está configurado corretamente
-
-### Bot fica offline
-
-1. Verifique se o `DISCORD_BOT_TOKEN` está correto
-2. Confirme que o bot não foi desativado no Developer Portal
-3. Verifique os logs para mensagens de erro
-
----
-
-## 💰 Custos
-
-O SherlockRamosBot usa a API do OpenRouter, que tem preços variados por modelo:
-
-- **GPT-3.5-turbo**: ~$0.002 por 1K tokens (muito econômico)
-- **GPT-4**: ~$0.03-0.06 por 1K tokens
-- **Claude-3**: ~$0.015-0.075 por 1K tokens
-
-💡 **Dica**: Comece com `openai/gpt-3.5-turbo` para testes e economizar créditos.
-
-Monitore seu uso em: [OpenRouter Dashboard](https://openrouter.ai/activity)
-
----
-
-## 🗺️ Roadmap
-
-Funcionalidades planejadas para futuras versões do SherlockRamosBot:
-
-### 🎯 Em Desenvolvimento
-
-### ✅ Implementado (Beta)
-
-#### RAG (Retrieval-Augmented Generation)
-
-- **Objetivo**: Integrar base de conhecimento jurídica vetorizada
-- **Benefícios**:
-  - 📚 Respostas baseadas em legislação específica armazenada
-  - 📖 Doutrinas e materiais de estudo indexados
-- **Como usar**:
-  - Administradores podem ingerir documentos usando `uv run scripts/ingest_docs.py arquivo.pdf`
-  - O bot consultará automaticamente a base ao responder
-
-### 🚀 Próximas Features
-
-#### Sistema de Flashcards Interativos
-
-- Geração automática de flashcards a partir de tópicos estudados
-- Revisão espaçada baseada em algoritmo SM-2
-- Tracking de progresso por matéria
-
-#### Quiz e Simulados Personalizados
-
-- Geração de questões estilo banca (CESPE, FCC, FGV, etc.)
-- Simulados cronometrados
-- Análise de desempenho e estatísticas
-
-#### Assistente de Revisão Programada
-
-- Lembretes automáticos de revisão
-- Cronograma de estudos personalizado
-- Acompanhamento de metas diárias/semanais
-
-#### Integração com Legislação Atualizada
-
-- Sync automático com Planalto/DOU
-- Notificações de alterações legislativas importantes
-- Comparação de versões de leis (redação antiga vs. nova)
-
-#### Análise de Jurisprudência
-
-- Busca de decisões relevantes do STF/STJ
-- Resumos automáticos de julgados
-- Tendências jurisprudenciais por tema
-
-#### Sistema de Ranking e Gamificação
-
-- Sistema de pontos por interações
-- Badges de conquistas (estudou X dias seguidos, etc.)
-- Ranking semanal de estudantes mais ativos
-
-### 💡 Ideias Futuras
-
-- 🎙️ Suporte a comandos de voz
-- 📱 App mobile complementar
-- 👥 Salas de estudo colaborativas
-- 🎬 Integração com vídeo-aulas
-- 📊 Dashboard web de estatísticas
-- 🔔 Sistema de notificações de editais
-
-### 🤝 Contribua com Ideias
-
-Tem uma sugestão? Abra uma
-[Discussion](https://github.com/prof-ramos/sherlock-discord-bot/discussions) ou
-[Issue](https://github.com/prof-ramos/sherlock-discord-bot/issues) com a tag `enhancement`!
-
----
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Para contribuir:
-
-1. Faça um Fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
-4. Push para a branch (`git push origin feature/MinhaFeature`)
-5. Abra um Pull Request
-
----
+Por favor, siga as convenções de código e estilo já presentes no projeto.
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Este projeto está licenciado sob a Licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais
+detalhes.
 
----
+Copyright (c) 2024-2026 Gabriel Ramos.
 
-## 📞 Suporte
+## 🙏 Autores e Agradecimentos
 
-- 🐛 **Bugs**: Abra uma [Issue](https://github.com/prof-ramos/sherlock-discord-bot/issues)
-- 💡 **Sugestões**: Abra uma
-  [Discussion](https://github.com/prof-ramos/sherlock-discord-bot/discussions)
-- 📧 **Contato**: [prof.ramos@exemplo.com]
+- **Autor Principal**: [Gabriel Ramos](https://github.com/prof-ramos)
 
----
+Agradecimentos a toda a comunidade de código aberto e aos criadores das bibliotecas que tornaram
+este projeto possível.
 
-## 🙏 Agradecimentos
+## 💬 Suporte
 
-- [OpenAI](https://openai.com/) - Modelos GPT
-- [Anthropic](https://anthropic.com/) - Modelos Claude
-- [OpenRouter](https://openrouter.ai/) - Plataforma unificada de APIs
-- [discord.py](https://discordpy.readthedocs.io/) - Biblioteca Discord para Python
-
----
-
-### Desenvolvido com ❤️ para a comunidade de concurseiros brasileiros
-
-⭐ Se este projeto te ajudou, considere dar uma estrela!
-
-[prof.ramos@exemplo.com]: mailto:prof.ramos@exemplo.com
+Se encontrar algum bug ou tiver alguma sugestão, por favor, abra uma **issue** no
+[rastreador de issues do GitHub](https://github.com/prof-ramos/sherlock-discord-bot/issues).

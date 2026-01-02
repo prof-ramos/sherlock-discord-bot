@@ -1,96 +1,129 @@
-import logging
+import json
 import os
-from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
-import chromadb
-from chromadb.utils import embedding_functions
+from openai import AsyncOpenAI
 
-from src.constants import SCRIPT_DIR
+from src.database import db_service
+from src.utils import logger
 
-logger = logging.getLogger(__name__)
+# Helper class to manage embeddings
+class EmbeddingService:
+    def __init__(self):
+        self.api_key = os.environ.get("OPENAI_API_KEY")
+        if not self.api_key:
+            logger.warning("OPENAI_API_KEY not found. RAG functionality will be disabled.")
+            self.client = None
+        else:
+            self.client = AsyncOpenAI(api_key=self.api_key)
 
-# Directory for storing the vector database
-CHROMA_DB_DIR = SCRIPT_DIR / "data" / "chroma_db"
-COLLECTION_NAME = "sherlock_knowledge_base"
+        # OpenRouter might not support embeddings strictly, best to use direct OpenAI or compatible
+        # If the user wants to use another provider, they can change the base_url here.
+        self.model = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
+
+    async def get_embedding(self, text: str) -> Optional[list[float]]:
+        if not self.client:
+            return None
+        try:
+            # Replace newlines to improve performance as recommended by OpenAI
+            text = text.replace("\n", " ")
+            response = await self.client.embeddings.create(input=[text], model=self.model)
+            return response.data[0].embedding
+        except Exception as e:
+            logger.error("Failed to generate embedding: %s", str(e))
+            return None
 
 class RAGService:
     def __init__(self):
-        """Initialize the RAG service with a persistent ChromaDB client."""
-        self._client = None
-        self._collection = None
+        self.embedding_service = EmbeddingService()
 
-        # Ensure the data directory exists
-        CHROMA_DB_DIR.parent.mkdir(parents=True, exist_ok=True)
-
-        try:
-            self._client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
-
-            # Use default embedding function (all-MiniLM-L6-v2)
-            # This runs locally and is free/fast for basic semantic search
-            self._embedding_fn = embedding_functions.DefaultEmbeddingFunction()
-
-            self._collection = self._client.get_or_create_collection(
-                name=COLLECTION_NAME,
-                embedding_function=self._embedding_fn,
-                metadata={"description": "Legal knowledge base for Sherlock Bot"}
-            )
-            logger.info("📚 RAG Service initialized. Collection size: %d", self._collection.count())
-
-        except Exception as e:
-            logger.error("❌ Failed to initialize RAG Service: %s", e)
-            # We don't raise here to avoid blocking the bot, but RAG won't work
-            self._client = None
-
-    def add_documents(self, documents: List[str], metadatas: List[dict], ids: List[str]) -> bool:
-        """Add documents to the knowledge base."""
-        if not self._collection:
-            logger.warning("RAG Service not initialized, cannot add documents.")
+    async def add_documents(self, documents: list[str], metadatas: list[dict], ids: list[str]) -> bool:
+        """Add documents to the Neon/Postgres vector store."""
+        if not self.embedding_service.client:
+            logger.error("Embedding service not configured. Cannot add documents.")
             return False
 
         try:
-            self._collection.add(
-                documents=documents,
-                metadatas=metadatas,
-                ids=ids
-            )
-            logger.info("✅ Added %d documents to knowledge base.", len(documents))
+            # Ensure DB connection
+            await db_service.connect()
+
+            # We insert one by one or batch. Batch is better.
+            # But we need embeddings first.
+            embeddings = []
+            for doc in documents:
+                emb = await self.embedding_service.get_embedding(doc)
+                if emb:
+                    embeddings.append(emb)
+                else:
+                    # In case of failure, we skip or abort. Let's abort for data integrity.
+                    logger.error("Could not generate embedding for a document. Aborting batch.")
+                    return False
+
+            async with db_service.pool.acquire() as conn:
+                async with conn.transaction():
+                    for doc, meta, emb in zip(documents, metadatas, embeddings):
+                        await conn.execute(
+                            """
+                            INSERT INTO documents (content, metadata, embedding)
+                            VALUES ($1, $2, $3)
+                            """,
+                            doc, json.dumps(meta), emb
+                        )
+
+            logger.info("✅ Added %d documents to Neon vector store.", len(documents))
             return True
+
         except Exception as e:
-            logger.error("Failed to add documents to RAG: %s", e)
+            logger.error("Failed to add documents to RAG: %s", str(e))
             return False
 
-    def query(self, query_text: str, n_results: int = 3) -> List[str]:
-        """Search for relevant documents."""
-        if not self._collection:
+    async def query(self, query_text: str, n_results: int = 3) -> list[str]:
+        """Search for relevant documents using vector similarity."""
+        if not self.embedding_service.client:
             return []
 
         try:
-            results = self._collection.query(
-                query_texts=[query_text],
-                n_results=n_results
-            )
+            query_embedding = await self.embedding_service.get_embedding(query_text)
+            if not query_embedding:
+                return []
 
-            # Results is a dict with lists of lists (batch processing)
-            # We only queried one text, so we take the first list of documents
-            if results and results['documents']:
-                return results['documents'][0]
+            await db_service.connect()
+            async with db_service.pool.acquire() as conn:
+                # Use <=> operator for cosine distance (pgvector)
+                # We want the closest distance (smallest value)
+                rows = await conn.fetch(
+                    """
+                    SELECT content
+                    FROM documents
+                    ORDER BY embedding <=> $1::vector
+                    LIMIT $2
+                    """,
+                    query_embedding, n_results  # Pass raw list, cast to vector in SQL
+                )
 
-            return []
+        # Note: We pass the raw list of floats and cast it to vector in SQL
+        # using $1::vector syntax for compatibility with pgvector via asyncpg.
+
+        return [row['content'] for row in rows]
+
         except Exception as e:
-            logger.error("RAG Query failed: %s", e)
+            # Log the full stack trace internally
+            logger.exception("RAG Query failed: %s", str(e))
+            # Return empty list to caller to degrade gracefully
             return []
 
-    def get_stats(self) -> dict:
-        """Return stats about the knowledge base."""
-        if not self._collection:
-            return {"status": "error", "count": 0}
+    async def get_stats(self) -> dict:
+        try:
+            await db_service.connect()
+            async with db_service.pool.acquire() as conn:
+                count = await conn.fetchval("SELECT COUNT(*) FROM documents")
+                return {
+                    "status": "active",
+                    "count": count,
+                    "backend": "neon-pgvector"
+                }
+        except Exception as e:
+            logger.error("Failed to get RAG stats: %s", str(e))
+            return {"status": "error", "error": str(e)}
 
-        return {
-            "status": "active",
-            "count": self._collection.count(),
-            "db_path": str(CHROMA_DB_DIR)
-        }
-
-# Global instance
 rag_service = RAGService()

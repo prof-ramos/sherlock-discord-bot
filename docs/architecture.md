@@ -20,8 +20,9 @@ graph LR
 
 O sistema é modularizado para separar responsabilidades:
 
-- **`main.py`**: O orquestrador central. Gerencia a conexão com o Discord, registra comandos slash
-  (`/chat`) e escuta eventos de mensagens (menções e conversas em threads).
+- **`main.py`**: Entry point com `commands.Bot`. Carrega cogs no `setup_hook`, sincroniza comandos
+  e inicializa exemplos de conversa.
+- **`cogs/chat.py`**: Slash command `/chat` e listeners de mensagens (menções e threads).
 - **`completion.py`**: Interface com a API de IA. Encapsula a lógica de chamada ao OpenRouter usando
   o SDK da OpenAI de forma assíncrona.
 - **`base.py`**: Define as estruturas de dados fundamentais (`Message`, `Conversation`,
@@ -45,7 +46,7 @@ sequenceDiagram
     participant OR as OpenRouter
 
     U->>D: Menciona @SherlockBot "Pergunta?"
-    D->>B: gatilho on_message()
+    D->>B: listener on_message() (Cog)
     B->>B: handle_mention() limpa conteúdo
     B->>D: Mostra "digitando..."
     B->>OR: POST /chat/completions (Prompt + Contexto)

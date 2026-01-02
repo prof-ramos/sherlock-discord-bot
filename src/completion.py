@@ -31,8 +31,7 @@ client = AsyncOpenAI(
     timeout=OPENROUTER_TIMEOUT,
 )
 
-MY_BOT_NAME = BOT_NAME
-MY_BOT_EXAMPLE_CONVOS = EXAMPLE_CONVOS
+# Remove global variables that are mutated from main.py
 
 
 class CompletionResult(Enum):
@@ -55,7 +54,11 @@ class CompletionData:
 
 @timed
 async def generate_completion_response(
-    messages: list[Message], user: str, thread_config: ThreadConfig
+    messages: list[Message],
+    user: str,
+    thread_config: ThreadConfig,
+    bot_name: str = BOT_NAME,
+    example_conversations: list = EXAMPLE_CONVOS
 ) -> CompletionData:
     # Verificar cache primeiro
     cached = response_cache.get(
@@ -78,19 +81,32 @@ async def generate_completion_response(
                 from src.rag_service import rag_service
                 docs = rag_service.query(last_user_msg)
                 if docs:
-                    rag_context = "\n\nRELEVANT LEGAL CONTEXT:\n" + "\n---\n".join(docs) + "\n\nUse the above context to answer the user's question if relevant."
+                    # Use "system" for consistency with other system messages
+                    rag_text = "RELEVANT LEGAL CONTEXT:\n" + "\n---\n".join(docs) + "\n\nUse the above context to answer the user's question if relevant."
+                    rag_context = Message("system", rag_text).render()
                     logger.info("📚 RAG: Injected %d documents into context", len(docs))
         except Exception as e:
             logger.error("RAG injection failed: %s", e)
 
-        system_instruction = f"Instructions for {MY_BOT_NAME}: {BOT_INSTRUCTIONS}{rag_context}"
+        system_instruction = f"Instructions for {bot_name}: {BOT_INSTRUCTIONS}"
+
+        # Create example conversations with the bot's actual name
+        bot_example_conversations = []
+        for convo in example_conversations:
+            messages_list = []
+            for msg in convo.messages:
+                if msg.user == BOT_NAME:
+                    messages_list.append(Message(user=bot_name, text=msg.text))
+                else:
+                    messages_list.append(msg)
+            bot_example_conversations.append(Conversation(messages=messages_list))
 
         prompt = Prompt(
             header=Message("system", system_instruction),
-            examples=MY_BOT_EXAMPLE_CONVOS,
+            examples=bot_example_conversations,
             convo=Conversation(messages),
         )
-        rendered = prompt.full_render(MY_BOT_NAME)
+        rendered = prompt.full_render(bot_name, thread_config.model, rag_context)
         response = await client.chat.completions.create(
             model=thread_config.model,
             messages=rendered,

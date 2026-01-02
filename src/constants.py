@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Final, Literal
+from typing import Any, Final, Literal, Optional
 
 import dacite
 import yaml
@@ -59,6 +59,7 @@ def _get_float_env(key: str, default: float) -> float:
 
 # API Configuration
 OPENROUTER_API_KEY: Final[str] = get_env("OPENROUTER_API_KEY")
+OPENAI_API_KEY: Final[str | None] = get_env("OPENAI_API_KEY", required=False) # Optional, strictly for embeddings if needed
 OPENROUTER_BASE_URL: Final[str] = get_env("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 OPENROUTER_MAX_RETRIES: Final[int] = _get_int_env("OPENROUTER_MAX_RETRIES", 3)
 OPENROUTER_TIMEOUT: Final[float] = _get_float_env("OPENROUTER_TIMEOUT", 60.0)
@@ -129,6 +130,9 @@ CACHE_MAX_SIZE: Final[int] = _get_int_env("CACHE_MAX_SIZE", 100)
 CACHE_TTL_SECONDS: Final[int] = _get_int_env("CACHE_TTL_SECONDS", 3600)
 
 # Available Models for runtime iteration and type hints
+DEFAULT_MENTION_MAX_TOKENS: Final[int] = 1024
+DEFAULT_MENTION_TEMPERATURE: Final[float] = 0.7
+
 MODELS_LIST: Final[tuple[str, ...]] = (
     # OpenAI Models
     "openai/gpt-3.5-turbo",
