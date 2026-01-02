@@ -1,5 +1,5 @@
-import asyncio
 import argparse
+import asyncio
 import logging
 import sys
 from pathlib import Path
@@ -7,12 +7,10 @@ from pathlib import Path
 # Ensure src is in python path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.rag_service import rag_service
-
 try:
-    from pypdf import PdfReader
+    from bs4 import BeautifulSoup
 except ImportError:
-    PdfReader = None  # type: ignore
+    BeautifulSoup = None  # type: ignore
 
 try:
     from docx import Document
@@ -20,9 +18,11 @@ except ImportError:
     Document = None  # type: ignore
 
 try:
-    from bs4 import BeautifulSoup
+    from pypdf import PdfReader
 except ImportError:
-    BeautifulSoup = None  # type: ignore
+    PdfReader = None  # type: ignore
+
+from src.rag_service import rag_service
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ def extract_text_from_html(html_path: Path) -> str:
         logger.error("beautifulsoup4 not installed. Cannot read HTML files.")
         sys.exit(1)
 
-    with open(html_path, 'r', encoding='utf-8') as f:
+    with open(html_path, encoding='utf-8') as f:
         soup = BeautifulSoup(f, 'html.parser')
 
     # Remove script and style elements
