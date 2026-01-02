@@ -3,12 +3,13 @@ from dataclasses import dataclass
 import openai
 from openai import AsyncOpenAI
 
-from src.moderation import moderate_message
 from typing import Optional, List
 from src.constants import (
     BOT_INSTRUCTIONS,
     BOT_NAME,
     EXAMPLE_CONVOS,
+    OPENAI_BASE_URL,
+    OPENAI_API_KEY,
 )
 import discord
 from src.base import Message, Prompt, Conversation, ThreadConfig
@@ -38,7 +39,10 @@ class CompletionData:
     status_text: Optional[str]
 
 
-client = AsyncOpenAI()
+client = AsyncOpenAI(
+    api_key=OPENAI_API_KEY,
+    base_url=OPENAI_BASE_URL
+)
 
 
 async def generate_completion_response(
@@ -60,25 +64,16 @@ async def generate_completion_response(
             top_p=1.0,
             max_tokens=thread_config.max_tokens,
             stop=["<|endoftext|>"],
+            extra_headers={
+                "HTTP-Referer": "https://github.com/prof-ramos/sherlock-discord-bot",
+                "X-Title": "Discord Bot Client",
+            },
         )
         reply = response.choices[0].message.content.strip()
-        if reply:
-            flagged_str, blocked_str = moderate_message(
-                message=(rendered[-1]["content"] + reply)[-500:], user=user
-            )
-            if len(blocked_str) > 0:
-                return CompletionData(
-                    status=CompletionResult.MODERATION_BLOCKED,
-                    reply_text=reply,
-                    status_text=f"from_response:{blocked_str}",
-                )
 
-            if len(flagged_str) > 0:
-                return CompletionData(
-                    status=CompletionResult.MODERATION_FLAGGED,
-                    reply_text=reply,
-                    status_text=f"from_response:{flagged_str}",
-                )
+        # Note: API-based moderation is disabled for OpenRouter
+        # OpenRouter applies native filtering on many models
+        # Custom moderation logic can be added here if needed in the future
 
         return CompletionData(
             status=CompletionResult.OK, reply_text=reply, status_text=None
