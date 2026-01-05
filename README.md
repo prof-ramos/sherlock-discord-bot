@@ -65,6 +65,7 @@ Para habilitar a busca web, você precisa de uma chave da API Serper.dev:
 1. **Obter chave**: Cadastre-se em [https://serper.dev/](https://serper.dev/)
    - Plano gratuito: 2.500 queries/mês
 2. **Configurar**: Adicione ao seu `.env`:
+
    ```ini
    SERPER_API_KEY=sua_chave_serper_aqui
    ```
@@ -80,7 +81,8 @@ Quando você faz uma pergunta que requer informações atualizadas, o LLM automa
 4. Gera uma resposta integrada com as informações obtidas
 
 **Exemplo**:
-```
+
+```text
 Usuário: Quais foram as decisões do STF sobre LGPD em 2025?
 Bot: 🔧 [busca automaticamente via Serper.dev]
       ✅ [responde com jurisprudência recente]
@@ -165,16 +167,19 @@ uv run python -m src.main
 
 #### 1. Iniciar uma Thread de Chat
 Use o comando `/chat` para iniciar um novo tópico de conversa organizado.
-```
+
+```text
 /chat message:"Explique o princípio da legalidade" model:"gpt-4" temperature:0.7
 ```
+
 - **message**: O prompt inicial.
 - **model** (opcional): Selecione LLMs específicos.
 - **temperature** (opcional): Nível de criatividade (0.0 a 1.0).
 
 #### 2. Menção Direta
 Basta mencionar o bot em qualquer canal para uma resposta rápida. O bot criará uma thread se a conversa continuar.
-```
+
+```text
 @SherlockRamosBot O que é Habeas Corpus?
 ```
 

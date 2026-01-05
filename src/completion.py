@@ -3,6 +3,7 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
+from urllib.parse import urlparse
 
 import discord
 import httpx
@@ -27,6 +28,19 @@ from src.moderation import (
 )
 from src.profiling import timed
 from src.utils import close_thread, logger, split_into_shorter_messages
+
+# Allowed domains for URL extraction (SSRF protection)
+ALLOWED_DOMAINS = {
+    "portal.stf.jus.br",
+    "stf.jus.br",
+    "www.stf.jus.br",
+    "stj.jus.br",
+    "www.stj.jus.br",
+    "planalto.gov.br",
+    "www.planalto.gov.br",
+    "www4.planalto.gov.br",
+    "legislacao.planalto.gov.br",
+}
 
 client = AsyncOpenAI(
     api_key=OPENROUTER_API_KEY,
@@ -60,7 +74,7 @@ async def buscar_jurisprudencia_web(query: str, tribunal: str = "todos") -> str:
         return "⚠️ Busca web não disponível (SERPER_API_KEY não configurada)"
 
     try:
-        # Build site-specific query
+        # Build site-specific query with proper encoding
         site_filters = {
             "stf": "site:portal.stf.jus.br OR site:stf.jus.br",
             "stj": "site:stj.jus.br",
@@ -68,6 +82,8 @@ async def buscar_jurisprudencia_web(query: str, tribunal: str = "todos") -> str:
             "todos": "site:stf.jus.br OR site:stj.jus.br OR site:planalto.gov.br",
         }
         site_filter = site_filters.get(tribunal.lower(), site_filters["todos"])
+        # Note: Serper.dev expects the query in the JSON body, not URL-encoded
+        # The JSON serialization handles proper escaping
         full_query = f"{query} {site_filter}"
 
         async with httpx.AsyncClient() as http_client:
@@ -102,8 +118,8 @@ async def buscar_jurisprudencia_web(query: str, tribunal: str = "todos") -> str:
         logger.error("Serper.dev timeout for query: %s", query)
         return "⏳ Timeout ao buscar jurisprudência online"
     except Exception as e:
-        logger.error("Serper.dev search failed: %s", str(e))
-        return f"❌ Erro ao buscar jurisprudência: {str(e)}"
+        logger.error("Serper.dev search failed: %s", e)
+        return f"❌ Erro ao buscar jurisprudência: {e!s}"
 
 
 async def extrair_conteudo_url(url: str) -> str:
@@ -117,6 +133,22 @@ async def extrair_conteudo_url(url: str) -> str:
         Texto extraído (max 4000 chars)
     """
     try:
+        # SSRF Protection: Validate URL scheme and domain
+        parsed = urlparse(url)
+
+        # Only allow HTTP/HTTPS schemes
+        if parsed.scheme not in ("http", "https"):
+            logger.warning("Invalid URL scheme: %s", parsed.scheme)
+            return "❌ URL inválida: apenas HTTP/HTTPS são permitidos"
+
+        # Only allow official Brazilian legal domains
+        if parsed.netloc not in ALLOWED_DOMAINS:
+            logger.warning("Domain not in allowlist: %s", parsed.netloc)
+            return (
+                f"❌ Domínio não autorizado: {parsed.netloc}. "
+                f"Apenas sites oficiais são permitidos (STF, STJ, Planalto)."
+            )
+
         async with httpx.AsyncClient() as http_client:
             response = await http_client.get(url, follow_redirects=True, timeout=30.0)
             response.raise_for_status()
@@ -142,8 +174,8 @@ async def extrair_conteudo_url(url: str) -> str:
         logger.error("URL extraction timeout: %s", url)
         return f"⏳ Timeout ao acessar URL: {url}"
     except Exception as e:
-        logger.error("URL extraction failed for %s: %s", url, str(e))
-        return f"❌ Erro ao extrair conteúdo da URL: {str(e)}"
+        logger.error("URL extraction failed for %s: %s", url, e)
+        return f"❌ Erro ao extrair conteúdo da URL: {e!s}"
 
 
 async def consultar_base_local(query: str, num_docs: int = 3) -> str:
@@ -179,8 +211,8 @@ async def consultar_base_local(query: str, num_docs: int = 3) -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        logger.error("Local RAG query failed: %s", str(e))
-        return f"❌ Erro ao consultar base local: {str(e)}"
+        logger.error("Local RAG query failed: %s", e)
+        return f"❌ Erro ao consultar base local: {e!s}"
 
 
 # Tool schemas in OpenAI format
@@ -300,6 +332,7 @@ async def generate_completion_response(
     thread_config: ThreadConfig,
     bot_name: str = BOT_NAME,
     example_conversations: list = EXAMPLE_CONVOS,
+    *,
     enable_tools: bool = True,
 ) -> CompletionData:
     # Verificar cache primeiro
@@ -395,8 +428,9 @@ async def generate_completion_response(
             used_tools = True
             logger.info("🔧 LLM solicitou %d tool(s)", len(message.tool_calls))
 
-            # Build tool messages
-            tool_messages = [message.model_dump(exclude_unset=True)]
+            # Build tool messages with robust serialization
+            # Use model_dump_json() + json.loads() for proper Pydantic serialization
+            tool_messages = [json.loads(message.model_dump_json(exclude_unset=True))]
 
             # Execute each tool
             for tool_call in message.tool_calls:
@@ -411,8 +445,8 @@ async def generate_completion_response(
                         function_to_call = TOOL_FUNCTIONS[function_name]
                         function_response = await function_to_call(**function_args)
                     except Exception as e:
-                        logger.error("Tool %s failed: %s", function_name, str(e))
-                        function_response = f"❌ Erro ao executar {function_name}: {str(e)}"
+                        logger.error("Tool %s failed: %s", function_name, e)
+                        function_response = f"❌ Erro ao executar {function_name}: {e!s}"
                 else:
                     logger.error("Unknown tool requested: %s", function_name)
                     function_response = f"❌ Ferramenta desconhecida: {function_name}"
@@ -428,6 +462,8 @@ async def generate_completion_response(
                 )
 
             # Second API call with tool results
+            # Note: We intentionally omit 'tools' parameter here to prevent infinite recursion
+            # (the LLM should synthesize the final answer, not call more tools)
             logger.info("🔄 Fazendo segunda chamada ao LLM com resultados das tools")
             second_response = await client.chat.completions.create(
                 model=thread_config.model,
