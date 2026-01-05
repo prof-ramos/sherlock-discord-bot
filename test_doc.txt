@@ -1,0 +1,16 @@
+LEI Nº 12.345, DE 1º DE JANEIRO DE 2024.
+
+Dispõe sobre a obrigatoriedade de testes automatizados em bots jurídicos.
+
+O PRESIDENTE DA REPÚBLICA Faço saber que o Congresso Nacional decreta e eu sanciono a seguinte Lei:
+
+Art. 1º Esta Lei estabelece normas sobre a verificação de qualidade em sistemas de inteligência artificial voltados para o direito.
+
+Art. 2º Todo bot jurídico deve passar por auditoria de código (CodeRabbit) antes do deploy.
+Parágrafo único. A auditoria deve cobrir aspectos de segurança, performance e corretude.
+
+Art. 3º Fica instituído o cache semântico obrigatório para economizar tokens.
+
+Art. 4º Esta Lei entra em vigor na data de sua publicação.
+
+Brasília, 1º de janeiro de 2024; 203º da Independência e 136º da República.

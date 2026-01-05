@@ -1,0 +1,26 @@
+# Documento de Teste - RAG Pipeline
+
+Este é um documento de exemplo para testar o pipeline de ingestão RAG do SherlockRamosBot.
+
+## Conceitos Jurídicos Básicos
+
+### Habeas Corpus
+O habeas corpus é um remédio constitucional que protege o direito de ir e vir do cidadão.
+Está previsto no artigo 5º, inciso LXVIII, da Constituição Federal de 1988.
+
+### Mandado de Segurança
+O mandado de segurança é uma ação judicial utilizada para proteger direito líquido e certo
+não amparado por habeas corpus ou habeas data, quando o responsável pela ilegalidade ou
+abuso de poder for autoridade pública.
+
+### Ação Popular
+A ação popular é um instrumento processual que permite ao cidadão fiscalizar os atos
+administrativos, visando anular ato lesivo ao patrimônio público ou de entidade de que
+o Estado participe.
+
+## Princípios Constitucionais
+
+1. **Legalidade**: Ninguém será obrigado a fazer ou deixar de fazer alguma coisa senão em virtude de lei.
+2. **Isonomia**: Todos são iguais perante a lei.
+3. **Contraditório e Ampla Defesa**: Garantias processuais fundamentais.
+4. **Presunção de Inocência**: Ninguém será considerado culpado até o trânsito em julgado.

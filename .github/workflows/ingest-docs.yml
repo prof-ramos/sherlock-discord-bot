@@ -1,0 +1,62 @@
+name: Ingest Documents with Neon Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      file_path:
+        description: 'Path to document to ingest (in repo)'
+        required: true
+        default: 'data/sample.txt'
+
+jobs:
+  ingest-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Create Neon Branch
+        id: create-branch
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: ingest-${{ github.run_id }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          username: ${{ secrets.NEON_DATABASE_USERNAME }}
+
+      - name: Install Dependencies
+        run: uv sync
+
+      - name: Initialize RAG Schema
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+        run: |
+          echo "Initializing RAG schema on branch..."
+          psql "$DATABASE_URL" -f scripts/init_rag_pgvector.sql
+
+      - name: Run Ingestion on Branch
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "Connecting to branch: ${{ steps.create-branch.outputs.branch_id }}"
+          uv run scripts/ingest_docs.py ${{ inputs.file_path }}
+
+      - name: Verify Ingestion (Basic Stat Check)
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          uv run scripts/verify_ingestion.py
+
+      - name: Output Branch Info
+        if: always()
+        run: |
+          echo "Ingestion complete on branch: ingest-${{ github.run_id }}"
+          echo "Connection String: ${{ steps.create-branch.outputs.db_url }}"
+          echo "Please verify the branch and manually merge/swap if satisfied."
