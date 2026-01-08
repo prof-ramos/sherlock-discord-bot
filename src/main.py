@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from pathlib import Path
 
 import discord
 from discord.ext import commands
@@ -79,10 +81,21 @@ class SherlockRamosBot(commands.Bot):
         await self.tree.sync()
         logger.info("Global command sync complete")
 
+    async def _heartbeat(self) -> None:
+        sentinel_path = Path("/tmp/bot_healthy")
+        while True:
+            try:
+                sentinel_path.touch()
+            except Exception as exc:
+                logger.warning("Failed to update heartbeat file: %s", exc)
+            await asyncio.sleep(30)
+
     async def on_ready(self) -> None:
-        """Initialize runtime data once the bot is connected."""
+        """Initialize runtime data once bot is connected."""
         if self.user is None:
             return
+
+        asyncio.create_task(self._heartbeat())
 
         logger.info("We have logged in as %s. Invite URL: %s", self.user, BOT_INVITE_URL)
         logger.info("Connected to %d guilds:", len(self.guilds))

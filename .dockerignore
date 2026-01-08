@@ -1,0 +1,118 @@
+# ============================================================================
+# Docker Build Context Exclusions
+# ============================================================================
+# This file specifies which files and directories should NOT be included
+# in the Docker build context, reducing build time and image size.
+#
+# CRITICAL: Prevents accidental inclusion of secrets and sensitive data.
+# ============================================================================
+
+# Version Control
+.git
+.gitignore
+.gitattributes
+.github
+
+# Environment Files (CRITICAL: Prevent secret leaks)
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+!.env.production.template
+
+# Python Cache and Bytecode
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+.venv
+venv
+env
+ENV
+env.bak
+venv.bak
+
+# Python Type Checking and Linting
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.tox
+
+# Testing
+tests/
+coverage_html/
+htmlcov/
+coverage.xml
+.coverage
+.coverage.*
+nosetests.xml
+pytest_cache/
+
+# Documentation (keep only essential README)
+docs/
+*.md
+!README.md
+
+# IDE and Editor Files
+.vscode
+.idea
+*.swp
+*.swo
+*.swn
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Build Artifacts
+build/
+dist/
+*.egg-info
+*.egg
+wheels/
+*.whl
+
+# Logs
+*.log
+logs/
+pip-log.txt
+
+# Project-Specific Exclusions
+data/
+plan/
+.claude/
+.agent/
+.sisyphus/
+.mcp.json
+*.backup
+repomix-output.*
+
+# Temporary Files
+*.tmp
+*.temp
+*.bak
+.cache
+
+# Database Files (should be external)
+*.db
+*.sqlite
+*.sqlite3
+
+# OS Files
+Thumbs.db
+
+# Docker Files (prevent recursion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Scripts not needed in production
+scripts/test_*.py
+scripts/verify_*.py
+scripts/truncate_*.py
+
+# Git keep files
+.gitkeep

@@ -11,26 +11,25 @@ Development guidelines for agentic coding agents working on the SherlockRamosBot
 5. [Development Workflow](#development-workflow)
 6. [Bot Personality Guidelines](#bot-personality-guidelines)
 7. [Security & Permissions](#security--permissions)
-8. [Testing Guidelines](#testing-guidelines-future)
+8. [Testing Guidelines](#testing-guidelines)
 9. [Performance Considerations](#performance-considerations)
 10. [Deployment Notes](#deployment-notes)
 11. [Extending the Bot](#extending-the-bot)
+12. [Common Gotchas & Implementation Notes](#common-gotchas--implementation-notes)
 
 ## Project Overview
 
-SherlockRamosBot is a Python Discord chatbot for Brazilian law students (concurseiros) that uses
-OpenRouter API to provide access to multiple LLM models. The bot maintains contextual conversations
-in Discord threads and is designed for answering legal questions in Portuguese.
+SherlockRamosBot is a Discord chatbot for Brazilian law students (concurseiros) that uses OpenRouter to access multiple LLM models (GPT-4, Claude, Gemini, LLaMA). It features RAG with Neon PostgreSQL/pgvector, persistent conversation history, and prompt caching for cost optimization. The bot maintains contextual conversations in Discord threads and is designed for answering legal questions in Portuguese.
 
 ## Development Commands
 
 ### Running the Bot
 
 ```bash
-# Recommended way (uses uv package manager)
+# Recommended
 uv run sherlock-bot
 
-# Alternative (direct module execution)
+# Alternative
 uv run python -m src.main
 
 # Install dependencies
@@ -40,24 +39,56 @@ uv sync
 ### Testing
 
 ```bash
-# No test framework currently configured
-# When adding tests, use: uv run pytest
-# Run single test: uv run pytest tests/test_file.py::test_function
+# Run all tests
+uv run pytest -v
+
+# Unit tests only
+uv run pytest tests/unit -v
+
+# Integration tests (requires DATABASE_URL)
+uv run pytest tests/integration -v
+
+# With coverage
+uv run pytest -v --cov=src --cov-report=term-missing
 ```
 
-### Code Quality (TO BE ADDED)
+### Code Quality
 
 ```bash
-# Code formatting (when configured)
-uv run black src/
-uv run ruff format src/
+# Linting and formatting (run in this order)
+uv run ruff check . --fix
+uv run ruff format .
 
-# Linting (when configured)
-uv run ruff check src/
-uv run flake8 src/
+# Type checking
+uv run mypy src
+```
 
-# Type checking (when configured)
-uv run pyright src/
+### RAG Pipeline
+
+```bash
+# Ingest documents
+uv run python scripts/ingest_docs.py path/to/document.pdf
+uv run python scripts/ingest_docs.py ~/docs/juridicos/  # directory (recursive)
+uv run python scripts/ingest_docs.py ./docs/ --no-recursive  # non-recursive
+
+# Verify ingestion
+uv run python scripts/verify_ingestion.py
+
+# Test RAG E2E
+uv run python scripts/test_rag_e2e.py
+```
+
+### Database Management
+
+```bash
+# Initialize database schema
+uv run python scripts/init_db.py
+
+# Verify database connection
+uv run python scripts/verify_db.py
+
+# Truncate database (DESTRUCTIVE)
+uv run python scripts/truncate_db.py
 ```
 
 ## Code Style Guidelines
@@ -213,19 +244,124 @@ src/
 
 ## Architecture Guidelines
 
-### Thread-Based Conversations
+### Cog-Based Architecture (discord.py 2.x)
 
-- **Create threads** for each conversation via `/chat` command
-- **Maintain context** using `thread_data` defaultdict with `ThreadConfig`
-- **Message limits**: Respect `MAX_THREAD_MESSAGES` (200) and token limits
-- **Thread lifecycle**: Use `ACTIVATE_THREAD_PREFIX` (💬✅) and `INACTIVATE_THREAD_PREFIX` (💬❌)
+The bot uses **Cogs** for modular command organization:
+
+**Entry Point (`src/main.py`)**:
+- `SherlockRamosBot` extends `commands.Bot`
+- `setup_hook()`: Loads cogs and syncs slash commands to guilds
+- Manages bot lifecycle and command registration
+
+**Chat Cog (`src/cogs/chat.py`)**:
+- `/chat` slash command: Creates threads for conversations
+- `on_message` listener: Handles mentions and thread messages
+- Coordinates message flow and moderation
+
+To add new commands:
+1. Create a new Cog in `src/cogs/`
+2. Load it in `main.py`'s `setup_hook()` via `await self.add_cog(YourCog(self, self.db_service))`
+3. Use `@app_commands.command()` for slash commands
+4. Commands sync automatically on bot startup to guilds in `ALLOWED_SERVER_IDS`
+
+### Two Conversation Modes
+
+**Thread Mode** (`/chat` command):
+1. User runs `/chat message:"question"` in a text channel
+2. Bot creates a Discord thread with prefix `💬✅`
+3. Thread config (model, temperature, max_tokens) persists in database
+4. Messages stored in database for analytics
+5. Thread closes at `MAX_THREAD_MESSAGES` (200) or context limit
+6. Only responds in threads it owns (`thread.owner_id == bot.user.id`)
+
+**Mention Mode** (direct mentions):
+1. User mentions bot: `@SherlockBot qual a diferença entre dolo e culpa?`
+2. Bot uses per-user virtual thread ID: `hash(f"{channel_id}_{user_id}")`
+3. Retrieves last 10 messages from database for context
+4. Responds directly in channel (no Discord thread)
+5. Uses default config from constants
+
+### Core Data Flow
+
+```
+User Message → Moderation → Database Log → [RAG Query] → LLM Prompt Construction → OpenRouter API → Cache → Response → Split & Send → Database Log
+```
+
+**Key Flow Points**:
+1. **Staleness Check**: 3s delay + validation that no newer user message exists (`is_last_message_stale`) to batch rapid messages
+2. **RAG Injection**: Last user message triggers hybrid search (vector + full-text) before LLM call
+3. **Prompt Caching**: Anthropic/Gemini models use structured content with cache_control for invariant parts
+4. **Response Cache**: LRU cache with TTL stores recent completions to reduce API calls
+
+### Database Schema (Neon PostgreSQL)
+
+**Tables**:
+- `threads`: Thread metadata (guild_id, user_id, model, temperature, max_tokens, is_active)
+- `messages`: Conversation history (thread_id, role, content, token_count, created_at)
+- `analytics`: Usage metrics (prompt_tokens, completion_tokens, response_time_ms)
+- `documents`: RAG knowledge base (content, metadata JSONB, embedding vector(1536), content_search tsvector)
+
+**Indexes**:
+- `documents.embedding`: HNSW index for fast vector similarity search
+- `documents.content_search`: GIN index for full-text search
+
+### RAG Pipeline Architecture
+
+**Hybrid Search (RRF - Reciprocal Rank Fusion)**:
+1. **Vector Search**: pgvector cosine similarity (`<=>` operator)
+2. **Keyword Search**: PostgreSQL full-text search (websearch_to_tsquery)
+3. **Ranking**: RRF combines results with score = 1/(k + rank), k=60
+4. **Language**: Configurable via `TEXT_SEARCH_LANG` (default: portuguese)
+
+**Embedding Service** (`src/rag_service.py`):
+- Uses OpenAI `text-embedding-3-small` model
+- Batch processing for efficiency
+- Tenacity retry logic (3 attempts, exponential backoff)
+
+**Document Processing** (`scripts/ingest_docs.py`):
+- Supports: PDF (pypdf), DOCX (python-docx), HTML (beautifulsoup4), TXT/MD
+- Chunking: 1000 chars, 200 overlap (configurable)
+- Metadata extraction: source file, type, chunk index
+- Deduplication via content hash
+
+### Prompt Engineering
+
+**Structure** (rendered by `Prompt.full_render()` in `src/base.py`):
+1. System message with bot instructions
+2. "Example conversations:" separator
+3. All example conversations from `config.yaml`
+4. [RAG context if available - wrapped in `<relevant_context>` XML tags]
+5. "Now, you will work with the actual current conversation." separator
+6. Actual conversation messages (alternating user/assistant roles)
+
+**Prompt Caching** (provider-specific):
+- **Anthropic**: Uses `cache_control: {"type": "ephemeral"}` on static parts
+- **Gemini**: Structured content format (no explicit cache_control)
+- **OpenAI/Others**: Plain text concatenation
+
+**Bot Personality**: Configured via `src/config.yaml`:
+- `name`: Bot display name
+- `instructions`: System prompt defining behavior
+- `example_conversations`: Few-shot examples for consistent responses
+
+### Response Caching
+
+**LRU Cache** (`src/cache.py`):
+- In-memory cache with TTL (default: 3600s)
+- Hash key includes: last 5 messages + model + temperature + max_tokens
+- Thread-safe with locks
+- Stats tracking: hits, misses, evictions, expirations
+- Max size: configurable via `CACHE_MAX_SIZE` (default: 100)
 
 ### OpenRouter Integration
 
-- **Base URL**: Must be `https://openrouter.ai/api/v1`
-- **API key format**: `sk-or-v1-...`
-- **Custom headers**: Required `HTTP-Referer` and `X-Title`
-- **Model selection**: Use `AVAILABLE_MODELS` literal type for type safety
+- Base URL must be `https://openrouter.ai/api/v1`
+- API key format: `sk-or-v1-...`
+- Custom headers required:
+  - `HTTP-Referer`: `https://github.com/prof-ramos/sherlock-discord-bot`
+  - `X-Title`: `Discord Bot Client`
+- No `/moderations` endpoint available (unlike OpenAI)
+- Models prefixed by provider (e.g., `openai/gpt-4o`, `anthropic/claude-3-opus`)
 
 ### Error Recovery
 
@@ -233,6 +369,13 @@ src/
 - **Thread state**: Don't leave threads in broken state
 - **Retry logic**: Implement for transient API errors
 - **Logging**: Log all errors with context for debugging
+
+### Thread-Based Conversations
+
+- **Create threads** for each conversation via `/chat` command
+- **Maintain context** using database storage with `ThreadConfig`
+- **Message limits**: Respect `MAX_THREAD_MESSAGES` (200) and token limits
+- **Thread lifecycle**: Use `ACTIVATE_THREAD_PREFIX` (💬✅) and `INACTIVATE_THREAD_PREFIX` (💬❌)
 
 ## Development Workflow
 

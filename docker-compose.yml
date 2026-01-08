@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  sherlock-discord-bot:
+    image: gabrielramosprof/sherlock-discord-bot:${IMAGE_TAG:-latest}
+
+    deploy:
+      mode: replicated
+      # CRITICAL: Discord bots MUST have exactly 1 replica
+      # Multiple instances would cause duplicate message responses
+      replicas: 1
+
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+
+      update_config:
+        # Stop old container before starting new (prevent duplicate Discord messages)
+        # CRITICAL: Discord bots must not have 2 instances running simultaneously
+        order: stop-first
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+
+      labels:
+        # Portainer integration labels
+        - "com.docker.stack.namespace=sherlock"
+        - "com.portainer.description=Discord bot for Brazilian law students (concurseiros)"
+        - "com.portainer.stack.name=sherlock"
+
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+
+    environment:
+      # ========================================================================
+      # OpenRouter Configuration (LLM Provider)
+      # ========================================================================
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}"
+      OPENROUTER_BASE_URL: "${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
+
+      # ========================================================================
+      # OpenAI Configuration (RAG Embeddings)
+      # ========================================================================
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+
+      # ========================================================================
+      # Discord Bot Configuration
+      # ========================================================================
+      DISCORD_BOT_TOKEN: "${DISCORD_BOT_TOKEN}"
+      DISCORD_CLIENT_ID: "${DISCORD_CLIENT_ID}"
+      ALLOWED_SERVER_IDS: "${ALLOWED_SERVER_IDS}"
+      SERVER_TO_MODERATION_CHANNEL: "${SERVER_TO_MODERATION_CHANNEL}"
+
+      # ========================================================================
+      # Database Configuration (Neon PostgreSQL)
+      # ========================================================================
+      DATABASE_URL: "${DATABASE_URL}"
+
+      # ========================================================================
+      # Neon API Configuration (for branch management)
+      # ========================================================================
+      NEON_PROJECT_ID: "${NEON_PROJECT_ID}"
+      NEON_API_KEY: "${NEON_API_KEY}"
+
+      # ========================================================================
+      # Bot Configuration
+      # ========================================================================
+      DEFAULT_MODEL: "${DEFAULT_MODEL:-xiaomi/mimo-v2-flash:free}"
+
+      # ========================================================================
+      # Python Runtime Configuration
+      # ========================================================================
+      # Force unbuffered output for better logging
+      PYTHONUNBUFFERED: "1"
+      # Prevent .pyc file creation
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    networks:
+      - ProfRamosNet
+
+    logging:
+      driver: json-file
+      options:
+        # Limit log file size to prevent disk fill
+        max-size: "10m"
+        # Keep last 3 log files (30MB total)
+        max-file: "3"
+        # Add labels to logs for better filtering
+        labels: "service,stack"
+
+    # Note: healthcheck is defined in Dockerfile
+    # Docker Swarm will automatically use it for service health monitoring
+
+networks:
+  ProfRamosNet:
+    external: true
+    name: ProfRamosNet
