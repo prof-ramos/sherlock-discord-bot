@@ -18,6 +18,7 @@ dependencies = [
     "tenacity>=9.1.2",
     "python-docx>=1.2.0",
     "beautifulsoup4>=4.14.3",
+    "httpx>=0.28.1",
 ]
 
 [project.scripts]

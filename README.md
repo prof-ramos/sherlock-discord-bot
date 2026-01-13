@@ -30,6 +30,63 @@
 - **Parâmetros de LLM Customizáveis**: Usuários podem ajustar modelos, temperatura e limites de tokens para consultas específicas via comandos de barra (slash commands).
 - **Persistência Robusta**: Armazena histórico de conversas e métricas em um banco de dados Neon (PostgreSQL Serverless).
 - **Moderação**: Verificações de segurança integradas para sinalizar ou bloquear conteúdo inapropriado.
+- **Function Calling**: Busca automatizada de jurisprudência web através da API Serper.dev quando o LLM detecta necessidade de informações atualizadas.
+
+## 🔧 Function Calling (Tools)
+
+O bot implementa **function calling** para permitir que o LLM acesse automaticamente informações jurídicas atualizadas quando necessário. Existem 3 ferramentas (tools) disponíveis:
+
+### Ferramentas Disponíveis
+
+1. **`buscar_jurisprudencia_web`**
+   - **Descrição**: Busca jurisprudência e legislação atualizada em sites oficiais brasileiros (STF, STJ, Planalto)
+   - **Quando usar**: Quando o LLM precisa de informações RECENTES (2024-2025) ou casos específicos não disponíveis na base local
+   - **Parâmetros**:
+     - `query` (obrigatório): Consulta jurídica em português
+     - `tribunal` (opcional): Filtrar por "stf", "stj", "planalto" ou "todos" (padrão)
+
+2. **`extrair_conteudo_url`**
+   - **Descrição**: Extrai texto completo de uma URL de decisão judicial ou legislação
+   - **Quando usar**: Quando o usuário fornece um link específico para análise
+   - **Parâmetros**:
+     - `url` (obrigatório): URL completa do documento
+
+3. **`consultar_base_local`**
+   - **Descrição**: Consulta a base de conhecimento local (RAG) com legislação e jurisprudência já indexada
+   - **Quando usar**: Para informações gerais e consolidadas
+   - **Parâmetros**:
+     - `query` (obrigatório): Consulta jurídica em português
+     - `num_docs` (opcional): Número de documentos a retornar (1-5, padrão: 3)
+
+### Configuração
+
+Para habilitar a busca web, você precisa de uma chave da API Serper.dev:
+
+1. **Obter chave**: Cadastre-se em [https://serper.dev/](https://serper.dev/)
+   - Plano gratuito: 2.500 queries/mês
+2. **Configurar**: Adicione ao seu `.env`:
+
+   ```ini
+   SERPER_API_KEY=sua_chave_serper_aqui
+   ```
+
+**Nota**: Se a `SERPER_API_KEY` não estiver configurada, o bot continuará funcionando normalmente, mas as buscas web não estarão disponíveis (o LLM usará apenas a base local e conhecimento geral).
+
+### Como Funciona
+
+Quando você faz uma pergunta que requer informações atualizadas, o LLM automaticamente:
+1. Detecta a necessidade de usar uma ferramenta
+2. Executa a busca apropriada (web, URL ou base local)
+3. Recebe os resultados
+4. Gera uma resposta integrada com as informações obtidas
+
+**Exemplo**:
+
+```text
+Usuário: Quais foram as decisões do STF sobre LGPD em 2025?
+Bot: 🔧 [busca automaticamente via Serper.dev]
+      ✅ [responde com jurisprudência recente]
+```
 
 ## 🏗 Arquitetura
 
@@ -87,6 +144,9 @@ DATABASE_URL=postgres://usuario:senha@host/dbname?sslmode=require
 
 # RAG / Vector DB
 CHROMA_PERSIST_DIRECTORY=src/data/chroma_db
+
+# Function Calling - Web Search (Opcional)
+SERPER_API_KEY=sua_chave_serper  # Obter em https://serper.dev/
 ```
 
 A persona do bot e as instruções de sistema são configuradas em `src/config.yaml`.
@@ -107,16 +167,19 @@ uv run python -m src.main
 
 #### 1. Iniciar uma Thread de Chat
 Use o comando `/chat` para iniciar um novo tópico de conversa organizado.
-```
+
+```text
 /chat message:"Explique o princípio da legalidade" model:"gpt-4" temperature:0.7
 ```
+
 - **message**: O prompt inicial.
 - **model** (opcional): Selecione LLMs específicos.
 - **temperature** (opcional): Nível de criatividade (0.0 a 1.0).
 
 #### 2. Menção Direta
 Basta mencionar o bot em qualquer canal para uma resposta rápida. O bot criará uma thread se a conversa continuar.
-```
+
+```text
 @SherlockRamosBot O que é Habeas Corpus?
 ```
 
